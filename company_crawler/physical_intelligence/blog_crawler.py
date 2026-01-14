@@ -2,16 +2,13 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-def researchCrawler():
+def blog_crawler():
     PI_URL = "https://www.pi.website"
     url = "https://www.pi.website/blog"
     resp = requests.get(url)
     soup = BeautifulSoup(resp.text, "html.parser")
     container = soup.select_one("div.relative.flex.flex-col.space-y-4")
-    researches = [
-        div.text.strip()
-        for div in container.find_all("div", recursive=False)
-    ]
+
     if not container:
         raise RuntimeError("Research container not found")
     

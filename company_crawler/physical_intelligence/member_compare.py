@@ -3,7 +3,7 @@ from pathlib import Path
 
 memberPath = Path("data/physical_intelligence/members.json")
 
-def memberCompare(curr_members):
+def member_compare(curr_members):
     curr_set = set(curr_members)
 
     if not memberPath.exists():

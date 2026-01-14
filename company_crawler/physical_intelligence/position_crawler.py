@@ -5,7 +5,7 @@ import time
 JOIN_US_URL = "https://www.pi.website/join-us"
 
 
-def positionCrawler():
+def position_crawler():
     positions = []
 
     with sync_playwright() as p:

@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
-def memberCrawler():
+def member_crawler():
     url = "https://www.pi.website"
     resp = requests.get(url)
     soup = BeautifulSoup(resp.text, "html.parser")

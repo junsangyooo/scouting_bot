@@ -5,7 +5,7 @@ from pathlib import Path
 DATA_PATH = Path("data/physical_intelligence/positions.json")
 
 
-def positionCompare(curr_positions):
+def position_compare(curr_positions):
     """
     Compare current positions with previous snapshot.
 
@@ -57,7 +57,6 @@ def positionCompare(curr_positions):
             updated.append({
                 "id": pid,
                 "title": curr_map[pid]["title"],
-                "url": curr_map[pid]["url"],
                 "before": prev_map[pid].get("description", ""),
                 "after": curr_map[pid].get("description", "")
             })
