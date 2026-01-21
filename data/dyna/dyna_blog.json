@@ -1,0 +1,18 @@
+[
+  {
+    "id": "fbda14e6db4e11337407102d817274a7",
+    "title": "DYNA-1 Model",
+    "date": "2025-06-15",
+    "type": "research",
+    "excerpt": "DYNA-1 is built on advanced vision-language-action systems and trained directly in real environments — no simulation shortcuts.",
+    "url": "https://www.dyna.co/dyna-1/research"
+  },
+  {
+    "id": "5bb016a1e8f58964024e93b6d0160fbf",
+    "title": "Open-World Dexterity and Live Demos around the World",
+    "date": "2025-12-20",
+    "type": "research",
+    "excerpt": "DYNA-1i extends DYNA-1's production-grade dexterity to open-world settings, achieving robust, data-efficient generalization across unseen environments and live public demos.",
+    "url": "https://www.dyna.co/dyna-2/research"
+  }
+]

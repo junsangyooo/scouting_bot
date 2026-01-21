@@ -54,6 +54,7 @@ def position_crawler():
                         "id": job_id,
                         "title": title,
                         "location": location,
+                        "compensation": "",
                         "description": description,
                         "description_hash": description_hash,
                     }

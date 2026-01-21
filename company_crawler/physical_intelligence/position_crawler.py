@@ -76,7 +76,10 @@ def position_crawler():
                 positions.append({
                     "id": _make_job_id(title),
                     "title": title,
-                    "description": description
+                    "location": "",
+                    "compensation": "",
+                    "description": description,
+                    "description_hash": _hash_text(description)
                 })
 
                 time.sleep(0.4)
@@ -124,3 +127,8 @@ def _clean_ashby_text(text: str) -> str:
         cleaned.append(line)
 
     return "\n\n".join(cleaned)
+
+
+def _hash_text(text: str) -> str:
+    import hashlib
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()

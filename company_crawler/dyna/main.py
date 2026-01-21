@@ -10,7 +10,7 @@ def run(purpose):
         blog_result = blog_compare(blogs)
         if purpose == "blog":
             return {
-                "company": "Figure AI",
+                "company": "DYNA",
                 "blog": blog_result
             }
 
@@ -20,7 +20,7 @@ def run(purpose):
         position_result = position_compare(positions)
         if purpose == "career":
             return {
-                "company": "Figure AI",
+                "company": "DYNA",
                 "position": position_result
             }
 
