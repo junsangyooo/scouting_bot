@@ -25,7 +25,7 @@ def run(purpose):
             }
 
     return {
-        "company": "Figure AI",
+        "company": "DYNA",
         "blog": blog_result,
         "position": position_result
     }
