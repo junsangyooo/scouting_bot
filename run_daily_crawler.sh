@@ -46,6 +46,38 @@ echo "========================================" | tee -a "$LOG_FILE"
 # Deactivate virtual environment
 deactivate
 
+# Auto-commit and push if there are changes
+echo "" | tee -a "$LOG_FILE"
+echo "========================================" | tee -a "$LOG_FILE"
+echo "Checking for data changes..." | tee -a "$LOG_FILE"
+echo "========================================" | tee -a "$LOG_FILE"
+
+# Check if there are any changes in the data directory
+if git diff --quiet data/ && git diff --cached --quiet data/; then
+    echo "✅ No changes detected in data/" | tee -a "$LOG_FILE"
+else
+    echo "📝 Changes detected! Committing and pushing..." | tee -a "$LOG_FILE"
+
+    # Add changes
+    git add data/
+
+    # Commit with timestamp
+    COMMIT_MSG="Auto-update company data - $(date '+%Y-%m-%d %H:%M:%S KST')
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+
+    git commit -m "$COMMIT_MSG" 2>&1 | tee -a "$LOG_FILE"
+
+    # Push to remote
+    if git push origin main 2>&1 | tee -a "$LOG_FILE"; then
+        echo "✅ Successfully pushed to GitHub!" | tee -a "$LOG_FILE"
+    else
+        echo "❌ Failed to push to GitHub" | tee -a "$LOG_FILE"
+    fi
+fi
+
+echo "" | tee -a "$LOG_FILE"
+
 # Keep only last 30 days of logs
 find "$LOGS_DIR" -name "crawler_*.log" -mtime +30 -delete
 

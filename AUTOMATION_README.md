@@ -18,12 +18,29 @@
 ```
 scouting_bot/
 ├── daily_crawler.py           # 메인 자동화 스크립트
-├── run_daily_crawler.sh        # Bash 실행 스크립트
+├── run_daily_crawler.sh        # Bash 실행 스크립트 (Git 자동 커밋/푸쉬 포함)
 ├── setup_cron.sh              # Cron 자동 설정 스크립트
 ├── .env.example               # 환경 변수 예시
 ├── logs/                      # 실행 로그 저장 (자동 생성)
 └── .venv/                     # Python 가상환경
 ```
+
+## 🔄 자동 Git 커밋/푸쉬
+
+크롤링 후 `data/` 디렉토리에 변경사항이 있으면 **자동으로 GitHub에 커밋 및 푸쉬**됩니다:
+
+1. **변경 감지**: `data/` 폴더의 JSON 파일 변경 확인
+2. **자동 커밋**: 타임스탬프와 함께 커밋 메시지 생성
+3. **자동 푸쉬**: GitHub에 자동으로 푸쉬
+
+**커밋 메시지 형식**:
+```
+Auto-update company data - 2026-02-10 08:00:15 KST
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
+
+이 기능은 `run_daily_crawler.sh` 스크립트에 내장되어 있어 별도 설정이 필요 없습니다.
 
 ---
 
