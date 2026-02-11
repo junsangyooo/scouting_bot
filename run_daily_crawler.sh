@@ -2,6 +2,9 @@
 # Daily Company Crawler - Automated Execution Script
 # This script runs the company crawler and logs the output
 
+# Add Claude CLI to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
 # Project directory
 PROJECT_DIR="/home/rlwrld/projects/scouting_program/scouting_bot"
 cd "$PROJECT_DIR" || exit 1

@@ -377,6 +377,12 @@ def send_slack_notification(webhook_url, results):
     """Send formatted results to Slack"""
 
     try:
+        # Debug logging
+        print(f"[DEBUG] Results type: {type(results)}")
+        print(f"[DEBUG] Results length: {len(results) if isinstance(results, list) else 'N/A'}")
+        for i, r in enumerate(results if isinstance(results, list) else []):
+            print(f"[DEBUG] Result {i} type: {type(r)}, has company: {hasattr(r, 'get') if hasattr(r, 'get') else 'N/A'}")
+
         message = format_slack_message(results)
 
         response = requests.post(
@@ -395,6 +401,8 @@ def send_slack_notification(webhook_url, results):
 
     except Exception as e:
         print(f"\n❌ Error sending Slack notification: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
