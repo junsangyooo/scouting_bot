@@ -171,6 +171,15 @@
     "url": "https://www.pi.website/join-us"
   },
   {
+    "id": "build-technician",
+    "title": "Build Technician",
+    "location": "",
+    "compensation": "",
+    "description": "Build Technican\n\nWe're looking for a hands-on Build Technician who thrives in a fast-paced hardware environment. You'll be responsible for building, assembling, and maintaining the robotic systems that power our data collection and model training operations.\n\nYou'll work directly with our Hardware Engineering team to bring robots from prototype to production, ensuring quality and reliability at every step.\n\nWhat You'll Do:\n\n- Build and assemble robotic systems according to engineering specifications, including mechanical, electrical, and electromechanical components\n\n- Install, calibrate, and configure robots and end-of-arm tooling for various applications\n\n- Execute test protocols and quality checks to ensure robots function as designed\n\n- Maintain detailed service records and documentation for robotic equipment\n\n- Support hardware bring-up, including wiring, harnessing, and integration of sensors and actuators\n\n- Collaborate with mechanical, electrical, and software engineers to root-cause manufacturing issues and implement solutions\n\n- Manage inventory of parts, tools, and consumables for the hardware lab\n\n- Train team members on assembly procedures and best practices\n\nCompetencies and Skills:\n\n- 2+ years of experience in mechanical or electromechanical assembly, robotics, or manufacturing environments\n\n- Proficiency with hand tools, power tools, and lab equipment (soldering, crimping, torque wrenches)\n\n- Experience with cable harnessing, wire routing, and electrical integration\n\n- Ability to read and interpret mechanical drawings, schematics, and assembly instructions\n\n- Familiarity with robotic systems, PLCs, or automated equipment is a plus\n\n- Basic understanding of CAN bus, Ethernet, and communication protocols\n\n- Strong troubleshooting skills and attention to detail\n\n- Comfortable working in a fast-paced, iterative environment\n\n- Experience with inventory management and documentation tools (Notion, Excel)\n\n- Prior experience in robotics, automotive, aerospace, or consumer electronics is highly valued\n\nGithub or  Website URL\n\nName\n\nEmail\n\nResume\n\nUpload File\n\nLinkedin\n\nWhy do you want to work at π?\n\nWhat're some examples of your extraordinary accomplishments?\n\nWe're interested in hearing about your proudest accomplishments—anything from developing an open source library that took off, to founding a company, to an award you've won.\n\nSubmit Application\n\nThis site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\nPowered by",
+    "description_hash": "f9c3742c27627e4f8144de4cf9b1dc3fddb26025aaf44a38c914ad78759899c3",
+    "url": "https://www.pi.website/join-us"
+  },
+  {
     "id": "forward-deployed-robotics-engineer",
     "title": "Forward Deployed Robotics Engineer",
     "location": "",
