@@ -180,24 +180,6 @@
     "url": "https://www.pi.website/join-us"
   },
   {
-    "id": "mechatronics-internship",
-    "title": "Mechatronics Internship",
-    "location": "",
-    "compensation": "",
-    "description": "Mechatronics Intern\n\nWe're looking for someone who is fundamentally a builder. Someone who loves to make robots real. We want someone who’s as comfortable debugging a CAN bus issue as they are machining a bracket. An individual who thinks in systems, and who gets excited by tight integration between mechanical, electrical, and embedded design. You’ll join the hardware engineering team at Physical Intelligence (Pi) who is supporting the robots that power Pi’s data collection and model training operations.\n\nName\n\nEmail\n\nResume\n\nUpload File\n\nPortofolio\n\nLinkedIn / GitHub / Personal Website\n\nWhy do you want to work at π?\n\nWhat would you most like to work on?\n\nWhat're some examples of your extraordinary accomplishments?\n\nWe're interested in hearing about your proudest accomplishments—anything from your research, to open source code or projects, to systems or hardware that you've built.\n\nPlease provide one or two names and email addresses we can contact as references\n\nSubmit Application\n\nThis site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\nPowered by",
-    "description_hash": "aecc8fe6d259e4038d7784364e2c2d25ca52016dcf36cb524d2e3e9eca0fbced",
-    "url": "https://www.pi.website/join-us"
-  },
-  {
-    "id": "hardware-systems-internship",
-    "title": "Hardware Systems Internship",
-    "location": "",
-    "compensation": "",
-    "description": "Hardware Systems Intern\n\nWe’re looking for a versatile Hardware Systems Engineering Intern to join our hardware team. This individual will support the development and improvement of critical infrastructure that supports our fleet’s health and uptime in a demanding hardware operation. What happens when you ask a robot to run a dishwasher for 8hrs a day? How hard is it really to make a cup of coffee? You’ll work alongside experienced mechanical and electrical engineers who are building the systems that enable robots to perform diverse tasks in warehouses as well as uncontrolled environments out in the wild.\n\nName\n\nEmail\n\nResume\n\nUpload File\n\nPortfolio\n\nLinkedIn / GitHub / Personal Website\n\nWhy do you want to work at π?\n\nWhat would you most like to work on?\n\nWhat're some examples of your extraordinary accomplishments?\n\nWe're interested in hearing about your proudest accomplishments—anything from your research, to open source code or projects, to systems or hardware that you've built.\n\nPlease provide one or two names and email addresses we can contact as references\n\nSubmit Application\n\nThis site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\nPowered by",
-    "description_hash": "c7473ec5ff75afbe86082017c0d7bab885f33f18bd39c2a470f952dd0b453f3c",
-    "url": "https://www.pi.website/join-us"
-  },
-  {
     "id": "shift-lead",
     "title": "Shift Lead",
     "location": "",
