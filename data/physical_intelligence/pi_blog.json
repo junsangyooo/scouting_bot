@@ -1,5 +1,13 @@
 [
   {
+    "id": "/blog/partner",
+    "title": "The Physical Intelligence Layer",
+    "date": "2026-02-24",
+    "type": "blog",
+    "excerpt": "New",
+    "url": "https://www.pi.website/blog/partner"
+  },
+  {
     "id": "/blog/olympics",
     "title": "Moravec's Paradox and the Robot Olympics",
     "date": "2025-12-22",
