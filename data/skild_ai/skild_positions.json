@@ -225,6 +225,15 @@
     "url": "https://job-boards.greenhouse.io/skildai-careers/jobs/4917298008"
   },
   {
+    "id": "robot-operator-pittsburgh",
+    "title": "Robot Operator",
+    "location": "Pittsburgh",
+    "compensation": "",
+    "description": "Company Overview\n\nAt Skild AI, we are building the world's first general purpose robotic intelligence that is robust and adapts to unseen scenarios without failing. We believe massive scale through data-driven machine learning is the key to unlocking these capabilities for the widespread deployment of robots within society. Our team consists of individuals with varying levels of experience and backgrounds, from new graduates to domain experts. Relevant industry experience is important, but ultimately less so than your demonstrated abilities and attitude. We are looking for passionate individuals who are eager to explore uncharted waters and contribute to our innovative projects.\n\nPosition Overview\n\nWe are seeking an experienced Electrical Engineer to join Skild AI and help drive innovation in robotics technology. In this role, you’ll design DC power systems, integrate sensors, and collaborate on advanced motor driver and power electronics. You’ll play a key part in hardware design, testing, and system validation to ensure reliability and performance in cutting-edge robotics solutions.\n\nResponsibilities\nDesign and implement DC power systems, including battery management systems, monitoring, and protection.\nCollaborate with firmware engineers to design and validate motor driver circuits and power electronics systems.\nIntegrate and fuse sensor data, including IMUs, encoders, hall sensors, and temperature sensors (PCB-level design).\nDevelop and test power/sensor electronics systems in collaboration with hardware and firmware teams.\nEnsure system reliability through testing, validation, and debugging of hardware systems in the lab.\nDocument design processes and contribute to hardware best practices.\nPreferred Qualifications\nBachelor’s or Master’s degree in Electrical Engineering, Robotics, or Mechatronics.\nHands-on experience with DC power systems, battery management, and power electronics.\nStrong understanding of sensor integration, including IMUs, encoders, and hall sensors.\nFamiliarity with low-level communication protocols such as RS-485, CAN, and SPI.\nExperience with hardware design, PCB layout, and debugging.\nProficiency in power electronics design, including motor drivers and circuit design.\nExcellent problem-solving skills and ability to handle system-level challenges.\n \n\nBase Salary Range\n\n$25 - $30 USD",
+    "description_hash": "5b397e58003efe2c22de10865e5b96f9225ae395ea71c4f1d3cff96e0d9b3f5f",
+    "url": "https://job-boards.greenhouse.io/skildai-careers/jobs/4782105008"
+  },
+  {
     "id": "robot-operator-san-mateo",
     "title": "Robot Operator",
     "location": "San Mateo",
