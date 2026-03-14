@@ -207,15 +207,6 @@
     "url": "https://job-boards.greenhouse.io/skildai-careers/jobs/4136373008"
   },
   {
-    "id": "robotics-technician-san-mateo",
-    "title": "Robotics Technician",
-    "location": "San Mateo",
-    "compensation": "",
-    "description": "Company Overview\n\nAt Skild AI, we are building the world's first general purpose robotic intelligence that is robust and adapts to unseen scenarios without failing. We believe massive scale through data-driven machine learning is the key to unlocking these capabilities for the widespread deployment of robots within society. Our team consists of individuals with varying levels of experience and backgrounds, from new graduates to domain experts. Relevant industry experience is important, but ultimately less so than your demonstrated abilities and attitude. We are looking for passionate individuals who are eager to explore uncharted waters and contribute to our innovative projects.\n\nPosition Overview\n\nWe are seeking a Robotics Software Technician to help sustain and improve Skild’s internal robot operations.\n\nIn this role, you will take ownership of complex diagnostics, repairs, and design improvements to keep our robotic systems running smoothly. You will work closely with AI and robotics engineers, as well as operations managers, to ensure technical issues are quickly identified, root-caused, and resolved—driving reliability and scalability across our fleet.\n\nResponsibilities\nDiagnose, troubleshoot, and repair complex mechanical, electrical, software, and perception system issues across a large fleet of robots.\nCollaborate with engineers to identify recurring issues, recommend design improvements, and enhance serviceability.\nCommunicate technical findings clearly and contribute to documentation, repair manuals, and troubleshooting guides.\nPerform CAD design, prototype fabrication, and robotic hardware assembly.\nImprove embedded control systems and implement electromechanical and perception systems.\nConduct root cause analysis, debugging, and testing for sensors, edge compute devices, and control systems.\nBuild dashboards (Looker, Tableau) and develop automation scripts in Python and Linux.\nMaintain detailed records of repairs, maintenance activities, and recurring technical issues.\nPreferred Qualifications\n5+ years of full time work experience in relevant industry\nStrong experience in diagnosing and repairing mechanical, electrical, and software systems.\nProficiency in CAD design and prototype fabrication.\nFamiliarity with embedded control systems, perception technologies, and electromechanical components.\nExcellent communication skills for cross-functional collaboration.\nExperience supporting large fleets of robots or complex automated systems.",
-    "description_hash": "8a41390d61d85b673c9a98cf258dba6db7cd1d554d435c36a35407ab9a087c68",
-    "url": "https://job-boards.greenhouse.io/skildai-careers/jobs/4917293008"
-  },
-  {
     "id": "robotics-technician-pittsburgh",
     "title": "Robotics Technician",
     "location": "Pittsburgh",
