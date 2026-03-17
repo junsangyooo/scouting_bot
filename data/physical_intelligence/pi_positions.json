@@ -108,15 +108,6 @@
     "url": "https://www.pi.website/join-us"
   },
   {
-    "id": "research-ops",
-    "title": "Research Ops",
-    "location": "",
-    "compensation": "",
-    "description": "Research Ops\n\nThe Team\n\nResearch Ops owns feasibility, task design, environments, and execution for data collection and eval, across our lab, our warehouse, and our real deployments. We turn research intent into tasks, scenes, and operational plans, and work with Production Ops to deliver the data and results.\n\nIn This Role You Will\n\nPrototype and specify technical systems\n\n- Be technical enough to sketch architectures, prototype workflows, and define requirements for operator tooling and data systems that our runtime team can implement. You should be comfortable getting your hands dirty, even if you are not shipping production infrastructure.\n\nDesign operational systems for research workflows\n\n- Turn research needs into clear processes: task specs, operator instructions, data capture requirements, and quality checks. Reduce ad-hoc work by building repeatable systems.\n\nWhat We Hope You'll Bring\n\n- Experience designing and running operational programs or complex workflows end to end\n\n- Comfort working in technical environments and collaborating closely with engineers and researchers\n\n- Strong systems thinking and ability to turn messy problems into clear processes\n\n- Experience working with operators or frontline teams and designing for how work actually happens\n\n- Clear written communication for specs, instructions, and process documentation\n\nBonus Points\n\n- Experience in robotics or research science\n\n- Background in data collection, data quality, or large-scale annotation systems\n\n- Experience prototyping internal tools or defining requirements for technical platforms\n\nGithub or  Website URL\n\nName\n\nEmail\n\nResume\n\nUpload File\n\nLinkedin\n\nWhy do you want to work at π?\n\nWhat're some examples of your extraordinary accomplishments?\n\nWe're interested in hearing about your proudest accomplishments—anything from developing an open source library that took off, to founding a company, to an award you've won.\n\nSubmit Application\n\nThis site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.\n\nPowered by",
-    "description_hash": "1b1bcee24d3fb77aca4171445e4380869086607f0e744aa802c01d3f6b814099",
-    "url": "https://www.pi.website/join-us"
-  },
-  {
     "id": "workplace-manager",
     "title": "Workplace Manager",
     "location": "",
