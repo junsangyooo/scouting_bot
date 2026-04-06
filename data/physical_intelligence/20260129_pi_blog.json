@@ -1,0 +1,82 @@
+[
+  {
+    "id": "/blog/olympics",
+    "title": "Moravec's Paradox and the Robot Olympics",
+    "date": "2025-12-22",
+    "type": "blog",
+    "excerpt": "By fine-tuning our latest model, we were able to solve a series of very difficult manipulation challenge tasks.",
+    "url": "https://www.pi.website/blog/olympics"
+  },
+  {
+    "id": "/research/human_to_robot",
+    "title": "Emergence of Human to Robot Transfer in VLAs",
+    "date": "2025-12-16",
+    "type": "research",
+    "excerpt": "",
+    "url": "https://www.pi.website/research/human_to_robot"
+  },
+  {
+    "id": "/blog/pistar06",
+    "title": "π*0.6: a VLA that Learns from Experience",
+    "date": "2025-11-17",
+    "type": "blog",
+    "excerpt": "A method for training our generalist policies with RL to improve success rate and throughput on real-world tasks.",
+    "url": "https://www.pi.website/blog/pistar06"
+  },
+  {
+    "id": "/research/real_time_chunking",
+    "title": "Real-Time Action Chunking with Large Models",
+    "date": "2025-06-09",
+    "type": "research",
+    "excerpt": "",
+    "url": "https://www.pi.website/research/real_time_chunking"
+  },
+  {
+    "id": "/research/knowledge_insulation",
+    "title": "VLAs that Train Fast, Run Fast, and Generalize Better",
+    "date": "2025-05-28",
+    "type": "research",
+    "excerpt": "",
+    "url": "https://www.pi.website/research/knowledge_insulation"
+  },
+  {
+    "id": "/blog/pi05",
+    "title": "π0.5: a VLA with Open-World Generalization",
+    "date": "2025-04-22",
+    "type": "blog",
+    "excerpt": "Our latest generalist policy, π0.5, extends π0 and enables open-world generalization. Our new model can control a mobile manipulator to clean up an entirely new kitchen or bedroom.",
+    "url": "https://www.pi.website/blog/pi05"
+  },
+  {
+    "id": "/research/hirobot",
+    "title": "Teaching Robots to Listen and Think Harder",
+    "date": "2025-02-26",
+    "type": "research",
+    "excerpt": "",
+    "url": "https://www.pi.website/research/hirobot"
+  },
+  {
+    "id": "/blog/openpi",
+    "title": "Open Sourcing π0",
+    "date": "2025-02-04",
+    "type": "blog",
+    "excerpt": "We are releasing the weights and code for π0 as well as our new π0-FAST autoregressive model.",
+    "url": "https://www.pi.website/blog/openpi"
+  },
+  {
+    "id": "/research/fast",
+    "title": "FAST: Efficient Robot Action Tokenization",
+    "date": "2025-01-16",
+    "type": "research",
+    "excerpt": "",
+    "url": "https://www.pi.website/research/fast"
+  },
+  {
+    "id": "/blog/pi0",
+    "title": "π0: Our First Generalist Policy",
+    "date": "2024-10-31",
+    "type": "blog",
+    "excerpt": "Our first generalist policy, π0, a prototype model that combines large-scale multi-task and multi-robot data collection with a new network architecture to enable the most capable and dexterous generalist robot policy to date.",
+    "url": "https://www.pi.website/blog/pi0"
+  }
+]

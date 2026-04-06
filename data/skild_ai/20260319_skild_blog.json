@@ -1,0 +1,50 @@
+[
+  {
+    "id": "/blogs/series-c",
+    "title": "Announcing Series C",
+    "date": "",
+    "type": "blog",
+    "excerpt": "",
+    "url": "https://www.skild.ai/blogs/series-c"
+  },
+  {
+    "id": "/blogs/learning-by-watching",
+    "title": "Learning by watching human videos",
+    "date": "",
+    "type": "blog",
+    "excerpt": "",
+    "url": "https://www.skild.ai/blogs/learning-by-watching"
+  },
+  {
+    "id": "/blogs/omni-bodied",
+    "title": "The case for an omni-bodied robot brain",
+    "date": "",
+    "type": "blog",
+    "excerpt": "",
+    "url": "https://www.skild.ai/blogs/omni-bodied"
+  },
+  {
+    "id": "/blogs/one-policy-all-scenarios",
+    "title": "One Model, Any Scenario: End-to-end Locomotion from Vision",
+    "date": "",
+    "type": "blog",
+    "excerpt": "",
+    "url": "https://www.skild.ai/blogs/one-policy-all-scenarios"
+  },
+  {
+    "id": "/blogs/building-the-general-purpose-robotic-brain",
+    "title": "Building the general-purpose robotic brain",
+    "date": "",
+    "type": "blog",
+    "excerpt": "",
+    "url": "https://www.skild.ai/blogs/building-the-general-purpose-robotic-brain"
+  },
+  {
+    "id": "/blogs/announcing-our-300m-series-a",
+    "title": "Announcing our $300M Series A Funding",
+    "date": "",
+    "type": "blog",
+    "excerpt": "",
+    "url": "https://www.skild.ai/blogs/announcing-our-300m-series-a"
+  }
+]
