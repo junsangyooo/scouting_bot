@@ -54,6 +54,15 @@
     "url": "https://generalistai.com/careers?posting=a9bee1c6-517b-4740-b4c0-10b6675bb07e"
   },
   {
+    "id": "software-engineer%3A-applications",
+    "title": "Software Engineer: Applications",
+    "location": "SFO or BOS",
+    "compensation": "",
+    "description": "Software Engineer: Applications\n\nTechnical Staff\n\nSFO or BOS\n\nFull-time\n\nOn-site\n\nAbout the Role\n\nYou will build the applications that customers, deployment partners, researchers, and other internal teams will use to diagnose, teach, QA, and run our robots.\n\nThis is modern full-stack web and API engineering in an AI-augmented world.\n\nYou’ll be responsible for:\n\nCrafting external and internal API interfaces that customers and partners interface with to access Generalist systems\n\nBuilding the tools and workflows that enable and accelerate the core missions of researchers, engineers, and operations partners company-wide.\n\nThe primary web application researchers, ops, and deployments use to evaluate and train robot models\n\nYou might thrive in this role if you:\n\nHave strong intuitions for what makes for great user interfaces, and user experiences\n\nUnderstand modern web stack technologies: Typescript, React, FastAPI, Postgres, AWS\n\nUnderstand how to expertly manage and leverage modern AI coding agents to accelerate development while maintaining high quality production standards",
+    "description_hash": "25c4e43c36c550f2057df288b393258a9bac6d8965b84ed5ef05dade6f7096be",
+    "url": "https://generalistai.com/careers?posting=e26eb203-2ca3-487a-818e-1c7759547a4b"
+  },
+  {
     "id": "software-engineer%3A-infrastructure",
     "title": "Software Engineer: Infrastructure",
     "location": "SFO or BOS",
@@ -88,15 +97,6 @@
     "description": "Software Engineer: ML Robotics Systems\n\nTechnical Staff\n\nSFO or BOS\n\nFull-time\n\nOn-site\n\nAbout the Role\n\nYou will tackle end to end problems that make our AI models work better on robots. You might add new functionality to our video processing data pipeline, then update our ML data loader, then train some models to validate your change, then test those changes in the real world on a robot. This requires stringing together many distributed python services to accomplish a given data processing, or application processing task. It also requires marshaling large quantities of cloud infrastructure to process this business logic efficiently at scale.\n\nYou’ll be responsible for:\n\nDesigning and implementing any new idea that can help make our entire system more robust, scalable, or faster\n\nOverhauling existing systems and services to handle the next 10x of scale\n\nWriting the business logic that gets our robot the data it needs, or the business logic that gives our customers the right access to our robots.\n\nYou might thrive in this role if you:\n\nHave extensive experience building complex distributed applications or data pipelines at scale\n\nHave experience processing petabytes of data (bonus if it’s video data)\n\nExpertise in python, basic distributed infrastructure skills, and solid modern ML fundamentals\n\nHave a solid foundation in modern ML techniques and experienced large scale ML training and production deployments\n\nHave experience with distributed cloud infrastructure and a solid understanding of cloud networking, permissions, and container orchestration (Kubernetes).",
     "description_hash": "9f0f7cfcd1412e4a439011de0946826adef3fe93373f9888a988fbe6a18b7164",
     "url": "https://generalistai.com/careers?posting=bfdbc2cc-3dda-43d6-963a-d3d763ebf6e5"
-  },
-  {
-    "id": "software-engineer%3A-product",
-    "title": "Software Engineer: Product",
-    "location": "SFO or BOS",
-    "compensation": "",
-    "description": "Software Engineer: Product\n\nTechnical Staff\n\nSFO or BOS\n\nFull-time\n\nOn-site\n\nAbout the Role\n\nThis is a customer-facing product engineering role with many PM-like responsibilities.\n\nYou will build the applications that customers, deployment partners, researchers, and other internal teams will use to diagnose, teach, QA, and run our robots.\n\nYou will spend 1/4 of your time with customers learning about their use cases and distilling product requirements. You'll then be one of the key people responsible for implementing those product ideas.\n\nToday, the product surface areas are web UIs, APIs, hardware appliances, robot interfaces, and human processes. You'll be expected to seamlessly work across all parts of the stack.\n\nYou’ll be responsible for:\n\nCrafting external and internal API interfaces that customers and partners interface with to access Generalist systems\n\nBuilding the tools and workflows that enable and accelerate the core missions of researchers, engineers, and operations partners company-wide.\n\nThe primary web application researchers, ops, and deployments use to evaluate and train robot models\n\nYou might thrive in this role if you:\n\nHave strong intuitions for what makes for great user interfaces, and user experiences\n\nUnderstand modern web stack technologies: Typescript, React, FastAPI, Postgres, AWS\n\nUnderstand how to expertly manage and leverage modern AI coding agents to accelerate development while maintaining high quality production standards",
-    "description_hash": "e35b909487f2e426fc8b2072ac375f718cfc92e5e13d498bceb5424afbbcc9fe",
-    "url": "https://generalistai.com/careers?posting=e26eb203-2ca3-487a-818e-1c7759547a4b"
   },
   {
     "id": "software-engineer%3A-robotics-controls",

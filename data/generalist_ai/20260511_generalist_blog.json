@@ -1,0 +1,58 @@
+[
+  {
+    "id": "/blog/apr-07-2026-beyond-world-models",
+    "title": "Going Beyond World Models & VLAs",
+    "date": "2026-04-07",
+    "type": "blog",
+    "excerpt": "Goals are more powerful than methods. We share our perspective on why GEN-1 is trained from scratch — and what lies beyond VLAs and world models.",
+    "url": "https://generalistai.com/blog/apr-07-2026-beyond-world-models"
+  },
+  {
+    "id": "/blog/apr-02-2026-GEN-1",
+    "title": "GEN-1: Scaling Embodied Foundation Models to Mastery",
+    "date": "2026-04-02",
+    "type": "blog",
+    "excerpt": "We’ve created GEN-1, our latest milestone in scaling robot learning—the first general-purpose AI model that crosses a new performance threshold: mastery of simple physical tasks.",
+    "url": "https://generalistai.com/blog/apr-02-2026-GEN-1"
+  },
+  {
+    "id": "/blog/mar-24-2026-gtc-demo",
+    "title": "The Real Breakthrough Behind Our GTC Demo",
+    "date": "2026-03-24",
+    "type": "blog",
+    "excerpt": "GEN-0 has given us a step-change in the speed of generalization — from a brand-new robot to a live public demo in days.",
+    "url": "https://generalistai.com/blog/mar-24-2026-gtc-demo"
+  },
+  {
+    "id": "/blog/jan-29-2026-physical-commonsense",
+    "title": "The Dark Matter of Robotics: Physical Commonsense",
+    "date": "2026-01-29",
+    "type": "blog",
+    "excerpt": "It's the reactive, closed-loop intelligence behind interacting in the physical world — an intuition of physics, compiled into reflex and muscle memory. What's been elusive in robotics may, for the first time, emerge from scaling.",
+    "url": "https://generalistai.com/blog/jan-29-2026-physical-commonsense"
+  },
+  {
+    "id": "/blog/nov-04-2025-GEN-0",
+    "title": "GEN-0 / Embodied Foundation Models That Scale with Physical Interaction",
+    "date": "2025-11-04",
+    "type": "blog",
+    "excerpt": "We're introducing GEN-0, a new class of embodied foundation models built for multimodal training directly on high-fidelity raw physical interaction.",
+    "url": "https://generalistai.com/blog/nov-04-2025-GEN-0"
+  },
+  {
+    "id": "/blog/sep-24-2025-the-robots-build-now-too",
+    "title": "The Robots Build Now, Too",
+    "date": "2025-09-24",
+    "type": "blog",
+    "excerpt": "One-shot assembly is one of our new internal evaluation tasks: you build a small Lego structure, place it in front of the robot, and the robot builds copies of it.",
+    "url": "https://generalistai.com/blog/sep-24-2025-the-robots-build-now-too"
+  },
+  {
+    "id": "/blog/jun-17-2025-research-preview",
+    "title": "Research Preview",
+    "date": "2025-06-17",
+    "type": "blog",
+    "excerpt": "Today we're excited to share a glimpse of what we're building at Generalist.",
+    "url": "https://generalistai.com/blog/jun-17-2025-research-preview"
+  }
+]
