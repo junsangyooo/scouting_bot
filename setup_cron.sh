@@ -4,7 +4,7 @@
 # This script adds a cron job to run the crawler every day at 8:00 AM KST
 
 CRON_SCHEDULE="0 8 * * *"
-SCRIPT_PATH="/home/rlwrld/projects/scouting_program/scouting_bot/run_daily_crawler.sh"
+SCRIPT_PATH="/home/rlwrld/projects/scouting_bot/run_daily_crawler.sh"
 
 # Check if webhook URL is set
 if [ -z "$SLACK_WEBHOOK_URL" ]; then

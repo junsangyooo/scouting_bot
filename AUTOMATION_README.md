@@ -109,7 +109,7 @@ export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 ### 자동 설정 (권장)
 
 ```bash
-cd /home/rlwrld/projects/scouting_program/scouting_bot
+cd /home/rlwrld/projects/scouting_bot
 
 # Webhook URL이 설정되어 있는지 확인
 echo $SLACK_WEBHOOK_URL
@@ -125,7 +125,7 @@ echo $SLACK_WEBHOOK_URL
 crontab -e
 
 # 다음 라인 추가 (매일 오전 8시 실행)
-0 8 * * * SLACK_WEBHOOK_URL='https://hooks.slack.com/services/YOUR/WEBHOOK/URL' /home/rlwrld/projects/scouting_program/scouting_bot/run_daily_crawler.sh
+0 8 * * * SLACK_WEBHOOK_URL='https://hooks.slack.com/services/YOUR/WEBHOOK/URL' /home/rlwrld/projects/scouting_bot/run_daily_crawler.sh
 ```
 
 ### Cron 일정 변경
@@ -163,7 +163,7 @@ crontab -e  # 편집기에서 해당 라인 삭제
 ### 1. 기본 테스트 (로그 출력)
 
 ```bash
-cd /home/rlwrld/projects/scouting_program/scouting_bot
+cd /home/rlwrld/projects/scouting_bot
 
 # Webhook URL 설정 (아직 안했다면)
 export SLACK_WEBHOOK_URL="your-webhook-url"
@@ -175,7 +175,7 @@ export SLACK_WEBHOOK_URL="your-webhook-url"
 ### 2. Python 스크립트 직접 실행
 
 ```bash
-cd /home/rlwrld/projects/scouting_program/scouting_bot
+cd /home/rlwrld/projects/scouting_bot
 
 # 가상환경 활성화
 source .venv/bin/activate
@@ -233,14 +233,14 @@ crontab -l
 grep CRON /var/log/syslog | tail -20
 
 # 스크립트 실행 권한 확인
-ls -l /home/rlwrld/projects/scouting_program/scouting_bot/*.sh
+ls -l /home/rlwrld/projects/scouting_bot/*.sh
 ```
 
 ### 문제 3: Python 모듈 오류
 
 **해결책**:
 ```bash
-cd /home/rlwrld/projects/scouting_program/scouting_bot
+cd /home/rlwrld/projects/scouting_bot
 
 # 가상환경 활성화
 source .venv/bin/activate
@@ -260,7 +260,7 @@ curl -X POST -H 'Content-type: application/json' \
   $SLACK_WEBHOOK_URL
 
 # 수동 실행으로 디버깅
-cd /home/rlwrld/projects/scouting_program/scouting_bot
+cd /home/rlwrld/projects/scouting_bot
 source .venv/bin/activate
 export SLACK_WEBHOOK_URL="your-url"
 python3 daily_crawler.py
@@ -325,7 +325,7 @@ Skild AI
 
 이 프로젝트는 다음과 같이 다른 프로젝트들과 독립적으로 실행됩니다:
 
-1. **독립 디렉토리**: `/home/rlwrld/projects/scouting_program/scouting_bot/`
+1. **독립 디렉토리**: `/home/rlwrld/projects/scouting_bot/`
 2. **독립 가상환경**: `.venv/` (프로젝트 내부)
 3. **독립 Cron 작업**: 별도의 스케줄로 실행
 4. **독립 로그**: `logs/` 디렉토리에 저장
@@ -337,7 +337,7 @@ Skild AI
 crontab -e  # 해당 라인 삭제 또는 주석처리 (#)
 
 # 완전 제거
-rm -rf /home/rlwrld/projects/scouting_program/scouting_bot
+rm -rf /home/rlwrld/projects/scouting_bot
 ```
 
 ---

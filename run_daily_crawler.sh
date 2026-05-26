@@ -6,7 +6,7 @@
 export PATH="$HOME/.local/bin:$PATH"
 
 # Project directory
-PROJECT_DIR="/home/rlwrld/projects/scouting_program/scouting_bot"
+PROJECT_DIR="/home/rlwrld/projects/scouting_bot"
 cd "$PROJECT_DIR" || exit 1
 
 # Create logs directory if it doesn't exist
