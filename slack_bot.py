@@ -66,6 +66,12 @@ COMPANIES = {
         "data_dir": BASE_DIR / "data" / "generalist_ai",
         "files": ["positions", "blog"],
     },
+    "sunday": {
+        "name": "Sunday Robotics",
+        "prefix": "sunday",
+        "data_dir": BASE_DIR / "data" / "sunday",
+        "files": ["positions", "blog"],
+    },
 }
 
 # ==========================================

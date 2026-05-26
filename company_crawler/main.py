@@ -1,11 +1,15 @@
 from physical_intelligence.main import run as run_pi
 from skild_ai.main import run as run_skild
 from dyna.main import run as run_dyna
+from generalist_ai.main import run as run_generalist
+from sunday.main import run as run_sunday
 
 COMPANIES = {
     "pi": ("Physical Intelligence", run_pi),
     "skild": ("Skild AI", run_skild),
     "dyna": ("DYNA", run_dyna),
+    "generalist": ("Generalist AI", run_generalist),
+    "sunday": ("Sunday Robotics", run_sunday),
 }
 
 PURPOSES = ["blog", "career", "all"]
@@ -15,14 +19,16 @@ def crawl_company():
     # Step 1: Select company
     print("\n=== Company Crawler ===\n")
     print("Select company to crawl:")
-    print("  - pi    : Physical Intelligence")
-    print("  - skild : Skild AI")
-    print("  - dyna  : DYNA")
-    print("  - all   : All companies")
+    print("  - pi         : Physical Intelligence")
+    print("  - skild      : Skild AI")
+    print("  - dyna       : DYNA")
+    print("  - generalist : Generalist AI")
+    print("  - sunday     : Sunday Robotics")
+    print("  - all        : All companies")
 
-    company = input("\nCompany (pi/skild/dyna/all): ").strip().lower()
+    company = input("\nCompany (pi/skild/dyna/generalist/sunday/all): ").strip().lower()
 
-    if company not in ["pi", "skild", "dyna", "all"]:
+    if company not in ["pi", "skild", "dyna", "generalist", "sunday", "all"]:
         print(f"[ERROR] Invalid company: {company}")
         return None
 

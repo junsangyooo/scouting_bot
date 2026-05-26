@@ -25,12 +25,14 @@ from physical_intelligence.main import run as run_pi
 from skild_ai.main import run as run_skild
 from dyna.main import run as run_dyna
 from generalist_ai.main import run as run_generalist
+from sunday.main import run as run_sunday
 
 COMPANIES = {
     "physical_intelligence": ("Physical Intelligence", run_pi, "pi"),
     "skild_ai": ("Skild AI", run_skild, "skild"),
     "dyna": ("DYNA", run_dyna, "dyna"),
     "generalist_ai": ("Generalist AI", run_generalist, "generalist"),
+    "sunday": ("Sunday Robotics", run_sunday, "sunday"),
 }
 
 DATA_FILES = {
@@ -49,6 +51,10 @@ DATA_FILES = {
     "generalist_ai": [
         "data/generalist_ai/generalist_positions.json",
         "data/generalist_ai/generalist_blog.json",
+    ],
+    "sunday": [
+        "data/sunday/sunday_positions.json",
+        "data/sunday/sunday_blog.json",
     ],
 }
 
