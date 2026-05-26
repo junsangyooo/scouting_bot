@@ -16,17 +16,7 @@ mkdir -p "$LOGS_DIR"
 # Log file with timestamp
 LOG_FILE="$LOGS_DIR/crawler_$(date +\%Y-\%m-\%d).log"
 
-# Export Slack webhook URL (set this to your actual webhook URL)
-# You can also set this in ~/.bashrc for persistence
-export SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
-
-# Check if webhook URL is set
-if [ -z "$SLACK_WEBHOOK_URL" ]; then
-    echo "[ERROR] SLACK_WEBHOOK_URL is not set!" | tee -a "$LOG_FILE"
-    echo "Please set it by running:" | tee -a "$LOG_FILE"
-    echo "  export SLACK_WEBHOOK_URL='your-webhook-url'" | tee -a "$LOG_FILE"
-    exit 1
-fi
+# Slack credentials are loaded from .env file by daily_crawler.py
 
 # Log start time
 echo "" | tee -a "$LOG_FILE"

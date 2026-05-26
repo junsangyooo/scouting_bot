@@ -113,12 +113,6 @@ def print_results(results):
                 if updated:
                     print(f"    ~ Updated: {len(updated)} positions")
 
-        # Team results (PI only)
-        if "team" in result:
-            team_data = result.get("team", {})
-            status = team_data.get("status", "N/A")
-            print(f"  Team: {status}")
-
 
 if __name__ == "__main__":
     results = crawl_company()

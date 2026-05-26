@@ -7,11 +7,16 @@ Automatically runs the crawler and sends formatted results to Slack
 import sys
 import json
 import os
+import shutil
 from datetime import datetime
 from io import StringIO
 import requests
 import subprocess
 from pathlib import Path
+from dotenv import load_dotenv
+from slack_sdk import WebClient
+
+load_dotenv()
 
 # Add company_crawler to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'company_crawler'))
@@ -19,12 +24,54 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'company_crawler'))
 from physical_intelligence.main import run as run_pi
 from skild_ai.main import run as run_skild
 from dyna.main import run as run_dyna
+from generalist_ai.main import run as run_generalist
 
 COMPANIES = {
     "physical_intelligence": ("Physical Intelligence", run_pi, "pi"),
     "skild_ai": ("Skild AI", run_skild, "skild"),
     "dyna": ("DYNA", run_dyna, "dyna"),
+    "generalist_ai": ("Generalist AI", run_generalist, "generalist"),
 }
+
+DATA_FILES = {
+    "physical_intelligence": [
+        "data/physical_intelligence/pi_positions.json",
+        "data/physical_intelligence/pi_blog.json",
+    ],
+    "skild_ai": [
+        "data/skild_ai/skild_positions.json",
+        "data/skild_ai/skild_blog.json",
+    ],
+    "dyna": [
+        "data/dyna/dyna_positions.json",
+        "data/dyna/dyna_blog.json",
+    ],
+    "generalist_ai": [
+        "data/generalist_ai/generalist_positions.json",
+        "data/generalist_ai/generalist_blog.json",
+    ],
+}
+
+
+def save_daily_snapshots():
+    """Copy each latest data file to a date-prefixed snapshot."""
+    date_str = datetime.now().strftime("%Y%m%d")
+
+    for company_key, file_paths in DATA_FILES.items():
+        for file_path in file_paths:
+            src = Path(file_path)
+            if not src.exists():
+                continue
+
+            snapshot_name = f"{date_str}_{src.name}"
+            snapshot_path = src.parent / snapshot_name
+
+            if snapshot_path.exists():
+                print(f"[INFO] Snapshot already exists: {snapshot_path}")
+                continue
+
+            shutil.copy2(str(src), str(snapshot_path))
+            print(f"[INFO] Saved snapshot: {snapshot_path}")
 
 
 def crawl_all_companies(purpose="all"):
@@ -90,11 +137,10 @@ def analyze_position_changes(company_name, company_key, file_prefix, position_da
     removed = position_data.get("removed", [])
     updated = position_data.get("updated", [])
 
-    # Build analysis prompt
+    # Build analysis prompt (only send changes, not full position list)
     prompt = f"""다음은 {company_name}의 채용공고 변화 데이터입니다.
 
-=== 전체 현재 채용공고 ===
-{json.dumps(full_positions, ensure_ascii=False, indent=2)}
+현재 전체 포지션 수: {len(full_positions)}개
 
 === 이번에 감지된 변화 ===
 신규 추가: {len(added)}개
@@ -148,14 +194,14 @@ def analyze_position_changes(company_name, company_key, file_prefix, position_da
 간결하게 작성해주세요. 너무 길지 않게, 핵심만! *별표는 1개만* 사용하세요."""
 
     try:
-        # Call Claude CLI (using haiku for faster response)
+        # Call Claude CLI
         print(f"[INFO] Sending analysis request to Claude...")
         result = subprocess.run(
-            ['claude', '-p', '--model', 'haiku'],
+            ['claude', '-p', '--model', 'sonnet'],
             input=prompt,
             capture_output=True,
             text=True,
-            timeout=90  # Increased timeout
+            timeout=120
         )
 
         if result.returncode == 0 and result.stdout.strip():
@@ -228,29 +274,6 @@ def format_slack_message(results):
             })
             blocks.append({"type": "divider"})
             continue
-
-        # Team updates (PI only)
-        team_data = result.get("team", {})
-        if team_data:
-            status = team_data.get("status", "initialized")
-            if status == "updated":
-                has_updates = True
-                added = team_data.get("added", [])
-                removed = team_data.get("removed", [])
-
-                company_text += "- *Team:*\n"
-                if added:
-                    company_text += "  - *Added:*\n"
-                    for member in added:
-                        name = member.get('name', 'Unknown')
-                        company_text += f"    • {name}\n"
-                if removed:
-                    company_text += "  - *Removed:*\n"
-                    for member in removed:
-                        name = member.get('name', 'Unknown')
-                        company_text += f"    • {name}\n"
-            else:
-                company_text += "- *Team:* Checked\n"
 
         # Blog/Research updates
         blog_data = result.get("blog") or result.get("research", {})
@@ -373,30 +396,30 @@ def format_slack_message(results):
     return {"blocks": blocks}
 
 
-def send_slack_notification(webhook_url, results):
-    """Send formatted results to Slack"""
+def send_slack_notification(results):
+    """Send formatted results to Slack via Bot Token"""
+    channel_id = os.environ.get('SLACK_CHANNEL_ID', 'C0AR5NXH160')
+    bot_token = os.environ.get('SLACK_BOT_TOKEN')
+
+    if not bot_token:
+        print("❌ SLACK_BOT_TOKEN not set, falling back to webhook")
+        return send_slack_notification_webhook(results)
 
     try:
-        # Debug logging
-        print(f"[DEBUG] Results type: {type(results)}")
-        print(f"[DEBUG] Results length: {len(results) if isinstance(results, list) else 'N/A'}")
-        for i, r in enumerate(results if isinstance(results, list) else []):
-            print(f"[DEBUG] Result {i} type: {type(r)}, has company: {hasattr(r, 'get') if hasattr(r, 'get') else 'N/A'}")
-
+        client = WebClient(token=bot_token)
         message = format_slack_message(results)
 
-        response = requests.post(
-            webhook_url,
-            json=message,
-            headers={'Content-Type': 'application/json'}
+        response = client.chat_postMessage(
+            channel=channel_id,
+            text="🤖 Daily Company Crawler Report",
+            blocks=message["blocks"],
         )
 
-        if response.status_code == 200:
-            print("\n✅ Slack notification sent successfully!")
+        if response["ok"]:
+            print(f"\n✅ Slack notification sent to channel {channel_id}!")
             return True
         else:
-            print(f"\n❌ Failed to send Slack notification: {response.status_code}")
-            print(f"Response: {response.text}")
+            print(f"\n❌ Failed: {response.get('error')}")
             return False
 
     except Exception as e:
@@ -406,21 +429,36 @@ def send_slack_notification(webhook_url, results):
         return False
 
 
+def send_slack_notification_webhook(results):
+    """Fallback: Send via webhook (legacy)"""
+    webhook_url = os.environ.get('SLACK_WEBHOOK_URL')
+    if not webhook_url:
+        print("❌ No SLACK_WEBHOOK_URL either, skipping notification")
+        return False
+
+    try:
+        message = format_slack_message(results)
+        response = requests.post(
+            webhook_url,
+            json=message,
+            headers={'Content-Type': 'application/json'}
+        )
+        if response.status_code == 200:
+            print("\n✅ Slack notification sent via webhook!")
+            return True
+        else:
+            print(f"\n❌ Failed: {response.status_code} {response.text}")
+            return False
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        return False
+
+
 def main():
     """Main execution function"""
 
-    # Get Slack webhook URL from environment variable
-    webhook_url = os.environ.get('SLACK_WEBHOOK_URL')
-
     # Check if running in test mode
     test_mode = os.environ.get('TEST_MODE', '').lower() in ['true', '1', 'yes']
-
-    if not webhook_url and not test_mode:
-        print("❌ ERROR: SLACK_WEBHOOK_URL environment variable not set")
-        print("Please set it in ~/.bashrc or the cron script")
-        print("\nOr run in test mode:")
-        print("  TEST_MODE=true python3 daily_crawler.py")
-        sys.exit(1)
 
     print("=" * 60)
     print(f"🚀 Starting Daily Company Crawler")
@@ -429,6 +467,12 @@ def main():
 
     # Run crawler
     results = crawl_all_companies(purpose="all")
+
+    # Save daily snapshots
+    print("\n" + "=" * 60)
+    print("💾 Saving daily snapshots...")
+    print("=" * 60)
+    save_daily_snapshots()
 
     # Print results to console
     print("\n" + "=" * 60)
@@ -445,13 +489,13 @@ def main():
                 print(f"  ✅ Success")
 
     # Send Slack notification
-    if webhook_url:
+    if not test_mode:
         print("\n" + "=" * 60)
         print("📤 Sending Slack Notification...")
         print("=" * 60)
 
-        send_slack_notification(webhook_url, results)
-    elif test_mode:
+        send_slack_notification(results)
+    else:
         print("\n" + "=" * 60)
         print("⚠️  TEST MODE: Skipping Slack notification")
         print("=" * 60)

@@ -1,5 +1,13 @@
 [
   {
+    "id": "/blog/pi07",
+    "title": "π0.7: a Steerable Model with Emergent Capabilities",
+    "date": "2026-04-16",
+    "type": "blog",
+    "excerpt": "A steerable robotic foundation model that exhibits a step-change in generalization.",
+    "url": "https://www.pi.website/blog/pi07"
+  },
+  {
     "id": "/research/rlt",
     "title": "Precise Manipulation with Efficient Online RL",
     "date": "2026-03-19",
