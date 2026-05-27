@@ -1,0 +1,46 @@
+[
+  {
+    "id": "/journal/series-b",
+    "title": "Sunday's Series B: No More Demos",
+    "date": "2026-03-13",
+    "category": "",
+    "type": "journal",
+    "excerpt": "For too long, the robotics industry has been defined by impressive demos. No matter how awe-inspiring, these demos are inherently constrained and designed to impress through the screen. The public rightfully questions when their ever-promised robots will arrive. We’re here to bre",
+    "content": "For too long, the robotics industry has been defined by impressive demos. No matter how awe-inspiring, these demos are inherently constrained and designed to impress through the screen. The public rightfully questions when their ever-promised robots will arrive. We’re here to break the cycle.\n\nPublic deployment starts with our beta program, rolling out to users this Fall. To deliver on this promise with quality and care, we’ve grown Engineering by 3x, Research by 4x, and Data Operations by 5x.\n\nWe just raised an oversubscribed $165M Series B at a $1.15B valuation to stop demos and bring the first autonomous home robot to households this year. Our round is led by Coatue, with Thomas Laffont joining the board. We are also welcoming Bain Capital Ventures, Fidelity Management & Research Company, Tiger Global, Benchmark, Conviction, Xtal Ventures and others.\n\nWe’re uniquely positioned to solve general autonomy through three core advantages:\n\nUnmatched Iteration speed: We built the fastest model iteration loop in robotics. We can move from collecting in-the-wild data, to model training and real-world evaluation faster than anyone else.\nA truly Full-stack Team This speed is only possible because we own the entire full stack from our Skill Capture Glove and data collection, to hardware design, manufacturing, and everything in between.\nOur Data Moat Our model iteration loop becomes the data flywheel that gives us vast proprietary data, from our gloves and robot fleet. We also benefit from improvements in public datasets, such as world models and VLMs. But our proprietary data is what enables us to deploy autonomous robots before others.\n\nIf you’re interested in joining us, we’re hiring across all functions: Sunday.ai/careers",
+    "content_hash": "7ceb35546fd5168c3826861b815b3e4276acff25b8f8737e4472e3d265ce408c",
+    "url": "https://www.sunday.ai/journal/series-b"
+  },
+  {
+    "id": "https://www.wired.com/story/memo-sunday-robotics-home-robot/",
+    "title": "This Home Robot Clears Tables and Loads the Dishwasher All by Itself",
+    "date": "2025-11-20",
+    "category": "Stories",
+    "type": "story",
+    "excerpt": "",
+    "content": "",
+    "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "url": "https://www.wired.com/story/memo-sunday-robotics-home-robot/"
+  },
+  {
+    "id": "/journal/no-robot-data",
+    "title": "ACT-1: A Robot Foundation Model Trained on Zero Robot Data",
+    "date": "2025-11-20",
+    "category": "Research",
+    "type": "research",
+    "excerpt": "Sunday’s mission is simple: Put a robot in every home. This is an exciting future—one that returns time to people for family, friends, and the passions they love. Since day one, we have been driven by a single question: How do we accelerate this future 10× or even 100× faster?\n\nA",
+    "content": "Sunday’s mission is simple: Put a robot in every home. This is an exciting future—one that returns time to people for family, friends, and the passions they love. Since day one, we have been driven by a single question: How do we accelerate this future 10× or even 100× faster?\n\nAs a full-stack company, we can identify bottlenecks across the entire system. We know that performance is always constrained by the weakest link. While many in robotics debate whether that link is hardware, compute, or funding, we believe there is only one definitive answer: data. Large Language Models (LLMs) thrive because they ingest the entire internet; robotics has no equivalent—no internet-scale corpus of real-world manipulation data.\n\nHow do we bridge this gap?\n\nThe standard approach is teleoperation: a human controls the robot remotely to teach it. While useful for demos, this creates a scaling \"deadlock.\" You cannot deploy robots at scale without intelligence, but you cannot build intelligence without the data from large-scale deployment. Companies like Tesla benefit from millions of vehicles collecting data every day—yet even for them, it took a decade to accumulate enough to see true progress.\n\nFor robotics, the reality is stark: Unless we invent a method orders of magnitude more efficient than teleoperation, gathering the data for a general-purpose robot will take decades. That is simply too slow.\n\nOur key insight is that to solve the data problem, we must solve the \"embodiment mismatch problem.\" If we can align the robot’s form factor with the human body, any data captured from humans can be directly translated to train robots. There are 8 billion humans on Earth; leveraging their daily movements would allow us to bootstrap intelligence, break the data deadlock, and unlock large-scale deployment of robots.\n\nHowever, leveraging this data is incredibly difficult. After millions of years of evolution, human hands possess a level of dexterity that is remarkably difficult to replicate. While some robotic hands look human, none have achieved true functional parity. If the robot hand doesn't match the human hand, the data doesn't transfer.",
+    "content_hash": "db7089cb66280f217174eb11b0a8106191646f1aca2f703f370ff3a032410588",
+    "url": "https://www.sunday.ai/journal/no-robot-data"
+  },
+  {
+    "id": "https://www.youtube.com/watch?v=4-VzXoZqAH0",
+    "title": "No Priors Episode | Conviction",
+    "date": "2025-11-19",
+    "category": "Stories",
+    "type": "story",
+    "excerpt": "",
+    "content": "",
+    "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "url": "https://www.youtube.com/watch?v=4-VzXoZqAH0"
+  }
+]
