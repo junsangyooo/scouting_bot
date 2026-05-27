@@ -26,6 +26,7 @@ from skild_ai.main import run as run_skild
 from dyna.main import run as run_dyna
 from generalist_ai.main import run as run_generalist
 from sunday.main import run as run_sunday
+from genesis.main import run as run_genesis
 
 COMPANIES = {
     "physical_intelligence": ("Physical Intelligence", run_pi, "pi"),
@@ -33,6 +34,7 @@ COMPANIES = {
     "dyna": ("DYNA", run_dyna, "dyna"),
     "generalist_ai": ("Generalist AI", run_generalist, "generalist"),
     "sunday": ("Sunday Robotics", run_sunday, "sunday"),
+    "genesis": ("Genesis AI", run_genesis, "genesis"),
 }
 
 DATA_FILES = {
@@ -55,6 +57,10 @@ DATA_FILES = {
     "sunday": [
         "data/sunday/sunday_positions.json",
         "data/sunday/sunday_blog.json",
+    ],
+    "genesis": [
+        "data/genesis/genesis_positions.json",
+        "data/genesis/genesis_blog.json",
     ],
 }
 
@@ -233,6 +239,34 @@ def analyze_position_changes(company_name, company_key, file_prefix, position_da
         return None
 
 
+def _chunk_mrkdwn(text, limit=2900):
+    """Split a mrkdwn string into chunks under Slack's 3000-char per-block limit.
+
+    Splits on line boundaries; any single line longer than the limit is
+    hard-split by character so no chunk ever exceeds the limit.
+    """
+    if len(text) <= limit:
+        return [text]
+
+    chunks = []
+    cur = ""
+    for line in text.split("\n"):
+        while len(line) > limit:
+            if cur:
+                chunks.append(cur)
+                cur = ""
+            chunks.append(line[:limit])
+            line = line[limit:]
+        if cur and len(cur) + len(line) + 1 > limit:
+            chunks.append(cur)
+            cur = line
+        else:
+            cur = line if not cur else cur + "\n" + line
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
 def format_slack_message(results):
     """Format crawling results for Slack with detailed status for all 7 sections"""
 
@@ -369,14 +403,17 @@ def format_slack_message(results):
             company_text += "\n📊 *AI Analysis*\n"
             company_text += f"{analysis}\n"
 
-        # Add company section
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": company_text
-            }
-        })
+        # Add company section (split into multiple blocks if it exceeds
+        # Slack's 3000-char per-block limit — e.g. a brand-new company whose
+        # entire post/position list lands in "Added" on the first run).
+        for chunk in _chunk_mrkdwn(company_text):
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": chunk
+                }
+            })
 
         # Add blank line (divider) after each company
         blocks.append({"type": "divider"})

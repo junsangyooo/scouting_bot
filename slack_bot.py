@@ -72,6 +72,12 @@ COMPANIES = {
         "data_dir": BASE_DIR / "data" / "sunday",
         "files": ["positions", "blog"],
     },
+    "genesis": {
+        "name": "Genesis AI",
+        "prefix": "genesis",
+        "data_dir": BASE_DIR / "data" / "genesis",
+        "files": ["positions", "blog"],
+    },
 }
 
 # ==========================================

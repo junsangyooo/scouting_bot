@@ -45,14 +45,17 @@ echo "========================================" | tee -a "$LOG_FILE"
 echo "Checking for data changes..." | tee -a "$LOG_FILE"
 echo "========================================" | tee -a "$LOG_FILE"
 
-# Check if there are any changes in the data directory
-if git diff --quiet data/ && git diff --cached --quiet data/; then
+# Check if there are any changes in the data directory.
+# NOTE: `git diff` ignores untracked files, so new daily snapshots / a brand-new
+# company's data would never trigger a commit. `git status --porcelain` catches
+# modified, staged AND untracked files.
+if [ -z "$(git status --porcelain data/)" ]; then
     echo "✅ No changes detected in data/" | tee -a "$LOG_FILE"
 else
     echo "📝 Changes detected! Committing and pushing..." | tee -a "$LOG_FILE"
 
-    # Add changes
-    git add data/
+    # Stage all changes including new (untracked) files
+    git add -A data/
 
     # Commit with timestamp
     COMMIT_MSG="Auto-update company data - $(date '+%Y-%m-%d %H:%M:%S KST')

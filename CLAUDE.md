@@ -12,7 +12,7 @@
 
 ## 모니터링 대상 회사
 
-`physical_intelligence` (PI), `skild_ai`, `dyna`, `generalist_ai` — 각각 `company_crawler/<company>/` 디렉토리와 `data/<company>/` 데이터 폴더를 가진다.
+`physical_intelligence` (PI), `skild_ai`, `dyna`, `generalist_ai`, `sunday` (Sunday Robotics), `genesis` (Genesis AI) — 각각 `company_crawler/<company>/` 디렉토리와 `data/<company>/` 데이터 폴더를 가진다.
 
 ## 두 개의 진입점 (둘 다 같은 데이터/크롤러를 공유)
 
@@ -48,12 +48,15 @@ setsid .venv/bin/python slack_bot.py   # PPID 1로 detached, 로그: slack_bot.l
 ```python
 {"company": <name>, "research"|"blog": <blog_result>, "position": <position_result>}
 ```
-> 키 네이밍 차이: `skild_ai`·`dyna`는 블로그 키가 `"blog"`, `physical_intelligence`·`generalist_ai`는 `"research"`.
+> 키 네이밍 차이: `skild_ai`·`dyna`·`genesis`는 블로그 키가 `"blog"`, `physical_intelligence`·`generalist_ai`·`sunday`는 `"research"`.
 > 소비측(`daily_crawler.py`, `slack_bot.py`)은 `result.get("blog") or result.get("research")`로 둘 다 처리.
 
 ## 크롤링 방식 주의점
 - **PI(`physical_intelligence`)는 Playwright 기반** — pi.website가 Next.js 클라이언트 사이드 렌더링이라 `requests`로는 DOM이 안 잡힌다. 채용공고는 `section > button(아코디언) > ul > li > a[?ashby_jid=...]` 구조이며, JD 상세는 `iframe#ashby_embed_iframe` 안에 있다.
 - 나머지 회사는 대체로 `requests` + BeautifulSoup. 셀렉터가 깨지면 `select_one`이 `None`을 반환하니 `None.find_all()` 류의 `AttributeError`를 조심.
+- **`genesis`(Genesis AI)도 Playwright 기반** (genesis.ai는 SvelteKit CSR).
+  - 채용: `genesis.ai/careers`에서 `a[href*="jobs.ashbyhq.com/genesis-ai/"]` 링크(제목/부서/위치/근무형태 inline) 수집 → 각 **Ashby** 상세 페이지에서 JD/보상 추출 (DYNA·Sunday와 동일 Ashby 구조). id는 Ashby UUID 사용. (`jobs.ashbyhq.com/genesis-ai` 보드 자체는 링크 구조가 달라 안 쓰고, careers 페이지를 출발점으로 삼는다.)
+  - 블로그: `/blog`(research) + `/press`(news)를 **하나의 "blog" 스트림**으로 합쳐 추적. 카드 = `a.container.debug-grid-item`(라인 = `[date, category, title]`), 상세 본문 = `section.article-block` 안의 `p.description` + `.blocks`. 각 글 상세에 재귀 진입해 `content` 전문까지 저장하고 `content_hash`로 변경 감지(Sunday와 동일 스키마).
 
 ## 🚨 새 회사 추가 시 반드시 함께 수정 (전체 파이프라인 동기화)
 
