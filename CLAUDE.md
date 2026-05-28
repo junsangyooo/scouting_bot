@@ -30,9 +30,14 @@ run_daily_crawler.sh → python3 daily_crawler.py
 ```
 setsid .venv/bin/python slack_bot.py   # PPID 1로 detached, 로그: slack_bot.log
 ```
-- `/analyze [시작YYYYMMDD] [종료YYYYMMDD]` — 두 날짜 스냅샷을 비교 + AI 분석
-- `/company_analyze` — 회사 선택 버튼 → 해당 회사 최신 JD+블로그 종합 분석
-- 비교 로직은 `compare_utils.py` (`compare_positions`, `compare_blogs`, `load_snapshot`) 공유
+- `/analyze [시작YYYYMMDD] [종료YYYYMMDD]` — 두 날짜 스냅샷을 비교 + AI 분석 (양 끝점만 비교)
+- `/company_analyze <회사> [시작YYYYMMDD] [종료YYYYMMDD]` — **온디맨드 단일 회사 분석 에이전트**.
+  날짜 생략 시 그 회사 전체 보유 기간. 인자 없이 호출하면 회사 선택 버튼(클릭=전체 기간).
+  내부적으로 `analysis_engine.py`가 **범위 내 모든 스냅샷을 연속쌍으로 walk**해(중간에 열렸다 닫힌 공고까지 포착)
+  채용 추이·속도·직무/시니어리티 믹스·지역·공고수명·블로그 cadence/테마를 **결정론적으로 계산** → Block Kit 카드,
+  그 요약을 claude CLI에 넘겨 AI 해설을 덧붙임. 회사 토큰은 prefix/별칭 fuzzy 매칭(`resolve_company`).
+- 분석 엔진 `analysis_engine.py`는 Slack/env 비의존 — `.venv/bin/python analysis_engine.py <회사> [시작] [종료]`로 단독 검증 가능.
+- 비교 로직은 `compare_utils.py` (`compare_positions`, `compare_blogs`, `load_snapshot`) 공유. `analysis_engine`도 이를 재활용.
 - **재시작 방법**: 기존 프로세스 `kill` 후 위 명령으로 재기동. 코드를 고쳐도 **프로세스를 재시작해야 반영됨.**
 
 ## 회사별 크롤러 구조 (`company_crawler/<company>/`)
@@ -68,9 +73,9 @@ setsid .venv/bin/python slack_bot.py   # PPID 1로 detached, 로그: slack_bot.l
    - `COMPANIES` 딕셔너리에 `"<new>": ("<Display Name>", run_<new>, "<prefix>")` 추가
    - `DATA_FILES` 딕셔너리에 `data/<new>/<prefix>_positions.json`, `<prefix>_blog.json` 추가
 3. **`slack_bot.py`** — `COMPANIES` 딕셔너리에 `{"name", "prefix", "data_dir", "files": ["positions","blog"]}` 추가 (`/analyze`·`/company_analyze` 버튼이 자동 생성됨). **수정 후 봇 재시작 필수.**
-4. (선택) `company_crawler/main.py` — 레거시 대화형 CLI. 쓰면 `COMPANIES`에 추가.
+4. **`analysis_engine.py`** — 상단 `COMPANIES`(name/prefix/data_dir)와 `ALIASES`(prefix/별칭→key)에 추가. 빠뜨리면 단독 CLI와 `resolve_company` 매칭이 어긋난다.
 
-> 핵심: **크롤러 추가만 하고 `slack_bot.py`를 빠뜨리면** 일일 리포트엔 나오지만 슬랙 봇 명령에는 안 보인다. 항상 양쪽 `COMPANIES`를 같이 갱신할 것.
+> 핵심: **크롤러 추가만 하고 `slack_bot.py`/`analysis_engine.py`를 빠뜨리면** 일일 리포트엔 나오지만 슬랙 봇 명령에는 안 보인다. 세 곳 `COMPANIES`(daily_crawler·slack_bot·analysis_engine)를 항상 같이 갱신할 것.
 
 ## 환경 / 실행
 - Python venv: `.venv` (`slack_bolt`, `playwright`, `beautifulsoup4`, `python-dotenv`, `slack_sdk` 등 설치됨)
@@ -78,3 +83,8 @@ setsid .venv/bin/python slack_bot.py   # PPID 1로 detached, 로그: slack_bot.l
 - AI 분석은 `claude` CLI를 `subprocess`로 호출 (`claude -p --model sonnet`)
 - 일일 크롤러 로컬 테스트(슬랙 전송 스킵): `TEST_MODE=true .venv/bin/python daily_crawler.py`
 - 데이터(`data/`)는 git으로 추적됨 (변경 이력 = 일별 스냅샷)
+
+## 운영
+- **크론**: `0 8 * * * run_daily_crawler.sh` (이미 등록됨). 셸 스크립트가 venv 활성화 → `daily_crawler.py` 실행 → `data/`에 변경 있으면 자동 `git add -A data/ && commit && push origin main`까지 한다.
+- **로그**: 일일 크롤은 `logs/crawler_YYYY-MM-DD.log`(30일 보관, 셸이 자동 정리), 슬랙 봇은 루트 `slack_bot.log`. `logs/analysis/`에 회사별 AI 분석 결과 txt 보관.
+- **AI 인사이트는 포지션 변화에만 붙는다** — `daily_crawler.crawl_all_companies()`가 `position.status == "updated"`일 때만 `analyze_position_changes`를 호출한다. 블로그 신규 글은 리포트에 목록으로만 나가고 AI 해설은 안 붙는다.

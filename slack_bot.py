@@ -85,6 +85,14 @@ COMPANIES = {
 # ==========================================
 
 from compare_utils import compare_positions, compare_blogs, load_snapshot
+from analysis_engine import (
+    resolve_company,
+    analyze,
+    build_ai_prompt,
+    chunk_mrkdwn,
+    _fmt_date,
+    _mix_line,
+)
 
 
 def find_snapshot(data_dir, prefix, file_type, date_str):
@@ -399,141 +407,177 @@ def build_summary_blocks(start_date, end_date, results):
 def handle_company_analyze(ack, respond, command):
     ack()
 
-    # Build company selection buttons
-    buttons = []
-    for key, company in COMPANIES.items():
-        buttons.append(
+    text = command.get("text", "").strip()
+    args = text.split()
+    channel_id = command["channel_id"]
+
+    # No args → company picker buttons (full-period report on click)
+    if not args:
+        buttons = [
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": company["name"], "emoji": True},
-                "action_id": f"company_analyze_{key}",
+                "action_id": f"company_report_{key}",
                 "value": key,
             }
+            for key, company in COMPANIES.items()
+        ]
+        respond(
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            "🏢 *분석할 회사를 선택하세요* (버튼 = 전체 기간)\n"
+                            "기간 지정: `/company_analyze <회사> <시작YYYYMMDD> <종료YYYYMMDD>`\n"
+                            "예: `/company_analyze skild 20260201 20260401`"
+                        ),
+                    },
+                },
+                {"type": "actions", "elements": buttons},
+            ]
+        )
+        return
+
+    # company + optional [start] [end]
+    company_key = resolve_company(args[0])
+    if not company_key or company_key not in COMPANIES:
+        valid = ", ".join(f"`{c['prefix']}`" for c in COMPANIES.values())
+        respond(
+            f"❌ 회사를 찾지 못했어요: `{args[0]}`\n"
+            f"사용법: `/company_analyze <회사> [시작YYYYMMDD] [종료YYYYMMDD]`\n"
+            f"회사: {valid}"
+        )
+        return
+
+    start = end = None
+    if len(args) >= 2:
+        start = args[1]
+        end = args[2] if len(args) >= 3 else datetime.now().strftime("%Y%m%d")
+        for ds, label in [(start, "시작"), (end, "종료")]:
+            if len(ds) != 8 or not ds.isdigit():
+                respond(f"❌ {label}날짜 형식이 잘못되었습니다: `{ds}` (YYYYMMDD)")
+                return
+        if start > end:
+            respond("❌ 시작날짜가 종료날짜보다 뒤입니다.")
+            return
+
+    run_company_report(app.client, channel_id, company_key, start, end)
+
+
+def build_metric_card_blocks(m):
+    """Deterministic metric card (Block Kit) from computed metrics."""
+    p, v, hc = m["period"], m["velocity"], m["headcount"]
+
+    head = {
+        "type": "header",
+        "text": {"type": "plain_text", "text": f"📊 {m['company']} 경쟁사 분석", "emoji": True},
+    }
+    ctx_txt = (
+        f"*구간:* {_fmt_date(p['actual_start'])} → {_fmt_date(p['actual_end'])} · "
+        f"스냅샷 {p['n_snapshots']}개"
+    )
+    if p["clamped"]:
+        ctx_txt += "  _(요청 범위 내 실제 데이터 구간)_"
+    ctx = {"type": "context", "elements": [{"type": "mrkdwn", "text": ctx_txt}]}
+
+    lines = []
+    if p["single"]:
+        lines.append("⚠️ *스냅샷 1개* — 현황 스냅만 (추세·속도 분석 불가)")
+        lines.append(f"*👥 현재 포지션* {hc['end']}개")
+    else:
+        lines.append(f"*👥 채용 규모* {hc['start']} → {hc['end']}  (순 {hc['net']:+d}, 기간 최대 {hc['peak']})")
+        opw = f"{v['opens_per_week']:.1f}/주" if v["opens_per_week"] is not None else "?"
+        lines.append(
+            f"*⚡ 채용 속도* +{v['opens']} / -{v['closes']} (순 {v['net']:+d}) · "
+            f"오픈 {opw} · JD재작성 {v['modifies']} · 재오픈 {v['reopens']}"
         )
 
-    respond(
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "🏢 *종합 분석할 회사를 선택하세요*\n최신 채용공고(JD)와 블로그를 기반으로 AI가 종합 분석합니다.",
-                },
-            },
-            {
-                "type": "actions",
-                "elements": buttons,
-            },
-        ]
-    )
+    fm = m["function_mix"]
+    func_str = _mix_line(fm["end"]) or "없음"
+    if not p["single"]:
+        deltas = {k: d for k, d in fm["delta"].items() if d}
+        if deltas:
+            top_deltas = sorted(deltas.items(), key=lambda x: -abs(x[1]))[:4]
+            func_str += "  (변화: " + ", ".join(f"{k} {d:+d}" for k, d in top_deltas) + ")"
+    lines.append(f"*🧩 직무 믹스* {func_str}")
+    lines.append(f"*🎚️ 시니어리티* {_mix_line(m['seniority_mix']) or '없음'}")
+
+    g = m["geo"]
+    if g["has_geo"]:
+        gl = f"*🌍 지역* {g['distinct']}곳 · " + ", ".join(f"{loc}({n})" for loc, n in g["top"])
+        if g["new"]:
+            gl += f" · _신규:_ {', '.join(g['new'])}"
+        lines.append(gl)
+
+    if m["comp"]["items"]:
+        lines.append(f"*💰 보상* {len(m['comp']['items'])}건 공개 (equity {m['comp']['equity_count']}건)")
+
+    lg = m["longevity"]
+    if lg["closed_median_days"] is not None:
+        ll = f"*⏳ 공고 수명* 마감 기준 중앙값 {lg['closed_median_days']:.0f}일 (n={lg['n_closed_with_days']})"
+        if lg["oldest_open"]:
+            t, d = lg["oldest_open"][0]
+            ll += f" · 가장 오래 열림: {t} ({d}일)"
+        lines.append(ll)
+
+    b = m["blog"]
+    lines.append(f"*📝 블로그/리서치* 기간 발행 {len(b['published'])}건 · 수정 {len(b['edits'])}건")
+    if b["themes"]:
+        lines.append("   _테마:_ " + ", ".join(f"{t}({n})" for t, n in b["themes"][:6]))
+    for post in b["published"][:6]:
+        url = post.get("url", "")
+        title = f"<{url}|{post['title']}>" if url else post["title"]
+        lines.append(f"   • [{post['date']}] {title}")
+
+    blocks = [head, ctx, {"type": "divider"}]
+    for chunk in chunk_mrkdwn("\n".join(lines)):
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": chunk}})
+    return blocks
 
 
-def load_company_data(company_key):
-    """Load latest positions and blog data for a company."""
+def run_company_report(client, channel_id, company_key, start, end):
+    """Run the full metric-card + AI-narrative report for one company and post to Slack."""
     company = COMPANIES[company_key]
-    prefix = company["prefix"]
-    data_dir = company["data_dir"]
+    name = company["name"]
+    label = "전체 기간" if not start else f"{_fmt_date(start)} ~ {_fmt_date(end)}"
+    client.chat_postMessage(channel=channel_id, text=f"🔍 *{name}* {label} 분석 중... 잠시만 기다려주세요.")
 
-    data = {}
-    for file_type in ["positions", "blog"]:
-        path = data_dir / f"{prefix}_{file_type}.json"
-        if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                data[file_type] = json.load(f)
-        else:
-            data[file_type] = []
-
-    return data
-
-
-def build_company_analyze_prompt(company_name, data):
-    """Build a comprehensive analysis prompt for a single company."""
-    positions = data.get("positions", [])
-    blogs = data.get("blog", [])
-
-    prompt = f"""다음은 {company_name}의 최신 채용공고와 블로그 데이터입니다. 종합 분석해주세요.
-
-=== 채용공고 ({len(positions)}개) ===
-{json.dumps(positions, ensure_ascii=False, indent=2)}
-
-=== 블로그/리서치 ({len(blogs)}개) ===
-{json.dumps(blogs, ensure_ascii=False, indent=2)}
-
-=== 분석 요청 ===
-위 데이터를 바탕으로 {company_name}의 현재 상태를 종합 분석해주세요.
-
-*형식 규칙:*
-- *Slack mrkdwn 형식 사용* (중요!)
-- Bold는 *텍스트* (별표 1개)
-- ** 절대 사용하지 마세요
-- 최대한 간결하고 핵심적인 불렛 포인트만
-- 각 불렛 아래에 간결한 한줄 근거 (서브 불렛)
-
-*분석 항목:*
-1. 🏢 회사 개요 (채용 규모, 주요 분야)
-2. 🔍 채용 포지션 분석
-   - 직군별 분포 (SW/HW/Research/Ops 등)
-   - 시니어리티 분포
-   - 핵심 기술 스택 및 요구 역량
-3. 📝 블로그/리서치 분석
-   - 주요 연구 주제 및 방향
-   - 기술적 강점 및 관심 분야
-4. 💡 종합 인사이트
-   - 회사의 현재 단계 및 방향성
-   - 채용과 리서치에서 드러나는 전략
-   - 주목할 만한 포인트
-5. 📊 경쟁력 평가
-   - 기술적 차별점
-   - 인재 확보 전략 특징
-
-간결하게 작성해주세요. 핵심만! *별표는 1개만* 사용하세요."""
-
-    return prompt
-
-
-# Register button action handlers for each company
-for _company_key in COMPANIES:
-    def _make_handler(ckey):
-        @app.action(f"company_analyze_{ckey}")
-        def handle_action(ack, body, client):
-            ack()
-
-            company = COMPANIES[ckey]
-            company_name = company["name"]
-            channel_id = body["channel"]["id"]
-
-            # Send "analyzing" message
+    metrics, err = analyze(company, start, end)
+    if err:
+        if err.get("reason") == "empty_range":
+            a0, a1 = err["available"]
             client.chat_postMessage(
                 channel=channel_id,
-                text=f"🔄 *{company_name}* 종합 분석 중... 잠시만 기다려주세요.",
+                text=f"❌ 해당 기간에 *{name}* 스냅샷이 없습니다.\n사용 가능 범위: `{a0} ~ {a1}`",
             )
+        else:
+            client.chat_postMessage(channel=channel_id, text=f"❌ *{name}* 데이터가 없습니다.")
+        return
 
-            # Load data and run analysis
-            data = load_company_data(ckey)
+    client.chat_postMessage(
+        channel=channel_id,
+        text=f"📊 {name} 분석",
+        blocks=build_metric_card_blocks(metrics),
+    )
 
-            pos_count = len(data.get("positions", []))
-            blog_count = len(data.get("blog", []))
+    analysis = run_claude_analysis(build_ai_prompt(metrics))
+    if analysis:
+        for chunk in chunk_mrkdwn(f"🤖 *AI 해설 — {name}*\n\n{analysis}"):
+            client.chat_postMessage(channel=channel_id, text=chunk)
+    else:
+        client.chat_postMessage(channel=channel_id, text="⚠️ AI 해설 생성에 실패했습니다.")
 
-            if pos_count == 0 and blog_count == 0:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    text=f"❌ *{company_name}*의 데이터가 없습니다.",
-                )
-                return
 
-            prompt = build_company_analyze_prompt(company_name, data)
-            analysis = run_claude_analysis(prompt)
-
-            if analysis:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    text=f"🏢 *{company_name} 종합 분석*\n(채용공고 {pos_count}개 · 블로그 {blog_count}개 기반)\n\n{analysis}",
-                )
-            else:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    text=f"⚠️ *{company_name}* 분석 생성에 실패했습니다.",
-                )
+# Register button action handlers for each company (button = full-period report)
+for _company_key in COMPANIES:
+    def _make_handler(ckey):
+        @app.action(f"company_report_{ckey}")
+        def handle_action(ack, body, client):
+            ack()
+            channel_id = body["channel"]["id"]
+            run_company_report(client, channel_id, ckey, None, None)
 
     _make_handler(_company_key)
 
