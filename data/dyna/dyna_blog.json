@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "627ebad56e6ccbdd7977f0bc4c3d8d6c",
+    "title": "DYNA-1 Model",
+    "date": "2025-06-01",
+    "type": "research",
+    "excerpt": "DYNA-1: The first VLA with 99%+ Success Rate",
+    "url": "https://www.dyna.co/research"
+  },
+  {
+    "id": "08aa0954fbaa6854b8d6c54d3fb808bd",
+    "title": "Open-World Dexterity",
+    "date": "2025-10-01",
+    "type": "research",
+    "excerpt": "Production-grade manipulation generalized to unseen environments and live public demos.",
+    "url": "https://www.dyna.co/research"
+  },
+  {
+    "id": "90b3e7a341cdad87880abba93852f237",
+    "title": "DYNA-1 Pre-Training",
+    "date": "2025-11-01",
+    "type": "research",
+    "excerpt": "Zero-shot dexterity from the base model, 100% success with one hour of fine-tuning.",
+    "url": "https://www.dyna.co/research"
+  },
+  {
+    "id": "97293e09c0a5092d67d1d5dc4837b94e",
+    "title": "What 10 Months in Production Taught Us About the Robotics “Bubble”",
+    "date": "2026-05-01",
+    "type": "blog",
+    "excerpt": "York Yang on what real deployments reveal about the gap between robotics hype and commercial value.",
+    "url": "https://www.dyna.co/blog"
+  },
+  {
+    "id": "4a3d2631358fa41ea5f73b3d9d85a047",
+    "title": "DYNA Closes $120M Series A",
+    "date": "2025-09-01",
+    "type": "blog",
+    "excerpt": "How we think about generalization, distribution, ROI, data and iteration on the path to physical AGI.",
+    "url": "https://www.dyna.co/blog"
+  },
+  {
+    "id": "0687f602adfd87d16a451b1577090f60",
+    "title": "Customer Testimonial: Monster Laundry",
+    "date": "2025-10-01",
+    "type": "blog",
+    "excerpt": "99%+ accuracy towel folding, 24/7 autonomous — a case study in commercial robotics.",
+    "url": "https://www.dyna.co/blog"
+  },
+  {
+    "id": "1cd2db89fe54cb75b1f8668bfc103294",
+    "title": "Fortune: From Instacart to Robots",
+    "date": "2025-03-01",
+    "type": "blog",
+    "excerpt": "Exclusive look at how a $350M exit and a DeepMind alum led to DYNA.",
+    "url": "https://www.dyna.co/blog"
+  },
+  {
+    "id": "fd5987dcd79e34d32c59c942d89212e1",
+    "title": "DYNA Raises $120M for Physical AGI",
+    "date": "2025-09-01",
+    "type": "blog",
+    "excerpt": "Series A to accelerate embodied AI and deployment-first robotics at scale.",
+    "url": "https://www.dyna.co/blog"
+  }
+]

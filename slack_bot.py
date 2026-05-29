@@ -47,36 +47,56 @@ COMPANIES = {
         "prefix": "pi",
         "data_dir": BASE_DIR / "data" / "physical_intelligence",
         "files": ["positions", "blog"],
+        "career_url": "https://www.pi.website/join-us",
+        "blog_url": "https://www.pi.website/blog",
     },
     "skild_ai": {
         "name": "Skild AI",
         "prefix": "skild",
         "data_dir": BASE_DIR / "data" / "skild_ai",
         "files": ["positions", "blog"],
+        "career_url": "https://www.skild.ai/career",
+        "blog_url": "https://www.skild.ai/blogs",
     },
     "dyna": {
         "name": "DYNA",
         "prefix": "dyna",
         "data_dir": BASE_DIR / "data" / "dyna",
         "files": ["positions", "blog"],
+        "career_url": "https://jobs.ashbyhq.com/dyna-robotics",
+        "blog_url": "https://www.dyna.co/research",
     },
     "generalist_ai": {
         "name": "Generalist AI",
         "prefix": "generalist",
         "data_dir": BASE_DIR / "data" / "generalist_ai",
         "files": ["positions", "blog"],
+        "career_url": "https://generalistai.com/careers",
+        "blog_url": "https://generalistai.com/blog",
     },
     "sunday": {
         "name": "Sunday Robotics",
         "prefix": "sunday",
         "data_dir": BASE_DIR / "data" / "sunday",
         "files": ["positions", "blog"],
+        "career_url": "https://jobs.ashbyhq.com/sunday",
+        "blog_url": "https://www.sunday.ai/journal",
     },
     "genesis": {
         "name": "Genesis AI",
         "prefix": "genesis",
         "data_dir": BASE_DIR / "data" / "genesis",
         "files": ["positions", "blog"],
+        "career_url": "https://www.genesis.ai/careers",
+        "blog_url": "https://www.genesis.ai/blog",
+    },
+    "rhoda": {
+        "name": "Rhoda AI",
+        "prefix": "rhoda",
+        "data_dir": BASE_DIR / "data" / "rhoda",
+        "files": ["positions", "blog"],
+        "career_url": "https://www.rhoda.ai/careers",
+        "blog_url": "https://www.rhoda.ai/news",
     },
 }
 
@@ -158,7 +178,7 @@ def build_analysis_prompt(start_date, end_date, results):
     formatted_start = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
     formatted_end = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
 
-    prompt = f"""다음은 {formatted_start} ~ {formatted_end} 기간 동안 3개 로보틱스 회사의 변화 데이터입니다.
+    prompt = f"""다음은 {formatted_start} ~ {formatted_end} 기간 동안 {len(results)}개 로보틱스/AI 회사의 변화 데이터입니다.
 
 """
     for key, result in results.items():
@@ -207,8 +227,8 @@ def build_analysis_prompt(start_date, end_date, results):
 - 회사별로 섹션을 나눠주세요
 
 *분석 항목:*
-1. 📋 기간 요약 (각 회사별 포지션/블로그/멤버 수 변화)
-2. 🔍 주요 변화 (추가/삭제된 포지션, 새 블로그, 멤버 변동)
+1. 📋 기간 요약 (각 회사별 포지션/블로그 수 변화)
+2. 🔍 주요 변화 (추가/삭제된 포지션, 새 블로그)
 3. 💡 핵심 인사이트 (채용 전략 변화, 조직 방향성 등)
 4. ⚠️ 특이사항 (Unusual한 패턴, 급격한 변화 등)
 
@@ -304,26 +324,41 @@ def handle_analyze(ack, respond, command):
 
     # Build summary message
     summary_blocks = build_summary_blocks(start_date, end_date, results)
-    app.client.chat_postMessage(
+    summary_resp = app.client.chat_postMessage(
         channel=command["channel_id"],
         text=f"📊 {formatted_start} ~ {formatted_end} 분석 결과",
         blocks=summary_blocks,
+        unfurl_links=False,   # suppress automatic link-preview cards
+        unfurl_media=False,
     )
+    thread_ts = summary_resp["ts"]
 
-    # Run Claude analysis
+    # Run Claude analysis — posted as a thread reply under the summary to keep
+    # the channel timeline lightweight.
     prompt = build_analysis_prompt(start_date, end_date, results)
     analysis = run_claude_analysis(prompt)
 
     if analysis:
-        app.client.chat_postMessage(
-            channel=command["channel_id"],
-            text=f"🤖 *AI 분석 ({formatted_start} ~ {formatted_end})*\n\n{analysis}",
-        )
+        header = f"🤖 *AI 분석 ({formatted_start} ~ {formatted_end})*\n\n"
+        for i, chunk in enumerate(chunk_mrkdwn(analysis)):
+            app.client.chat_postMessage(
+                channel=command["channel_id"],
+                thread_ts=thread_ts,
+                text=(header + chunk) if i == 0 else chunk,
+                unfurl_links=False,
+                unfurl_media=False,
+            )
     else:
         app.client.chat_postMessage(
             channel=command["channel_id"],
+            thread_ts=thread_ts,
             text="⚠️ AI 분석 생성에 실패했습니다.",
         )
+
+
+def _linked_label(text, url):
+    """Slack mrkdwn bold label, linked to `url` when available."""
+    return f"*<{url}|{text}>:*" if url else f"*{text}:*"
 
 
 def build_summary_blocks(start_date, end_date, results):
@@ -351,6 +386,7 @@ def build_summary_blocks(start_date, end_date, results):
 
     for key, result in results.items():
         company_name = result["name"]
+        company_cfg = COMPANIES.get(key, {})
         text = f"*{company_name}*\n"
 
         for file_type in ["positions", "blog"]:
@@ -360,11 +396,13 @@ def build_summary_blocks(start_date, end_date, results):
 
             status = data.get("status", "")
             label = {"positions": "Career", "blog": "Blog"}.get(file_type, file_type)
+            url = company_cfg.get("career_url" if file_type == "positions" else "blog_url")
+            label_md = _linked_label(label, url)
 
             if status == "missing":
-                text += f"• *{label}:* ⚠️ 데이터 없음\n"
+                text += f"• {label_md} ⚠️ 데이터 없음\n"
             elif status == "checked":
-                text += f"• *{label}:* ✅ 변경 없음\n"
+                text += f"• {label_md} ✅ 변경 없음\n"
             elif status == "updated":
                 added = data.get("added", [])
                 removed = data.get("removed", [])
@@ -378,7 +416,7 @@ def build_summary_blocks(start_date, end_date, results):
                 if updated:
                     parts.append(f"~{len(updated)} 변경")
 
-                text += f"• *{label}:* {', '.join(parts)}\n"
+                text += f"• {label_md} {', '.join(parts)}\n"
 
                 if added:
                     for item in added:
@@ -556,18 +594,23 @@ def run_company_report(client, channel_id, company_key, start, end):
             client.chat_postMessage(channel=channel_id, text=f"❌ *{name}* 데이터가 없습니다.")
         return
 
-    client.chat_postMessage(
+    card_resp = client.chat_postMessage(
         channel=channel_id,
         text=f"📊 {name} 분석",
         blocks=build_metric_card_blocks(metrics),
+        unfurl_links=False,   # suppress automatic link-preview cards
+        unfurl_media=False,
     )
+    thread_ts = card_resp["ts"]
 
+    # AI narrative posted as a thread reply under the metric card.
     analysis = run_claude_analysis(build_ai_prompt(metrics))
     if analysis:
         for chunk in chunk_mrkdwn(f"🤖 *AI 해설 — {name}*\n\n{analysis}"):
-            client.chat_postMessage(channel=channel_id, text=chunk)
+            client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text=chunk,
+                                    unfurl_links=False, unfurl_media=False)
     else:
-        client.chat_postMessage(channel=channel_id, text="⚠️ AI 해설 생성에 실패했습니다.")
+        client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text="⚠️ AI 해설 생성에 실패했습니다.")
 
 
 # Register button action handlers for each company (button = full-period report)

@@ -2,7 +2,7 @@ import json
 import hashlib
 from pathlib import Path
 
-DATA_PATH = Path("data/sunday/sunday_positions.json")
+DATA_PATH = Path("data/rhoda/rhoda_positions.json")
 
 
 def position_compare(curr_positions):
@@ -74,4 +74,4 @@ def _save(positions):
 
 
 def _hash_text(text):
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()

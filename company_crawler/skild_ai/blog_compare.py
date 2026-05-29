@@ -16,6 +16,14 @@ def blog_compare(curr_items):
 
     prev_items = json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
+    # Guard: an empty crawl is treated as a crawl failure, not a real wipe —
+    # don't overwrite good data or report a false mass-removal.
+    if not curr_items and prev_items:
+        print(f"[WARN] Empty blog crawl but {len(prev_items)} previous items exist — "
+              "treating as crawl failure; keeping previous data.")
+        return {"status": "checked"}
+
+
     prev_map = {p["id"]: p for p in prev_items}
     curr_map = {p["id"]: p for p in curr_items}
 

@@ -27,6 +27,7 @@ from dyna.main import run as run_dyna
 from generalist_ai.main import run as run_generalist
 from sunday.main import run as run_sunday
 from genesis.main import run as run_genesis
+from rhoda.main import run as run_rhoda
 
 COMPANIES = {
     "physical_intelligence": ("Physical Intelligence", run_pi, "pi"),
@@ -35,6 +36,20 @@ COMPANIES = {
     "generalist_ai": ("Generalist AI", run_generalist, "generalist"),
     "sunday": ("Sunday Robotics", run_sunday, "sunday"),
     "genesis": ("Genesis AI", run_genesis, "genesis"),
+    "rhoda": ("Rhoda AI", run_rhoda, "rhoda"),
+}
+
+# Public-facing pages for each company's blog/research + careers. Each company's
+# thread reply links to these ("채용 페이지 보기" / "블로그/리서치 페이지 보기").
+# Keyed by display name (that's what each crawler result carries).
+COMPANY_LINKS = {
+    "Physical Intelligence": {"career": "https://www.pi.website/join-us", "blog": "https://www.pi.website/blog"},
+    "Skild AI": {"career": "https://www.skild.ai/career", "blog": "https://www.skild.ai/blogs"},
+    "DYNA": {"career": "https://jobs.ashbyhq.com/dyna-robotics", "blog": "https://www.dyna.co/research"},
+    "Generalist AI": {"career": "https://generalistai.com/careers", "blog": "https://generalistai.com/blog"},
+    "Sunday Robotics": {"career": "https://jobs.ashbyhq.com/sunday", "blog": "https://www.sunday.ai/journal"},
+    "Genesis AI": {"career": "https://www.genesis.ai/careers", "blog": "https://www.genesis.ai/blog"},
+    "Rhoda AI": {"career": "https://www.rhoda.ai/careers", "blog": "https://www.rhoda.ai/news"},
 }
 
 DATA_FILES = {
@@ -61,6 +76,10 @@ DATA_FILES = {
     "genesis": [
         "data/genesis/genesis_positions.json",
         "data/genesis/genesis_blog.json",
+    ],
+    "rhoda": [
+        "data/rhoda/rhoda_positions.json",
+        "data/rhoda/rhoda_blog.json",
     ],
 }
 
@@ -267,174 +286,122 @@ def _chunk_mrkdwn(text, limit=2900):
     return chunks
 
 
-def format_slack_message(results):
-    """Format crawling results for Slack with detailed status for all 7 sections"""
+def _blog_data_of(result):
+    """Blog stream regardless of key naming ("blog" vs "research")."""
+    return result.get("blog") or result.get("research") or {}
 
-    # Slack Block Kit format
+
+def _label(text, url):
+    """Slack mrkdwn bold label, linked to `url` when available."""
+    return f"*<{url}|{text}>:*" if url else f"*{text}:*"
+
+
+def _render_section(label_md, data):
+    """Render one '- {label}' line for the main report.
+
+    '... Checked' when unchanged, else the label followed by nested
+    Added/Removed/Updated bullet lists with linked titles.
+    """
+    if data.get("status") != "updated":
+        return f"- {label_md} Checked\n"
+    out = f"- {label_md}\n"
+    for key, sub in (("added", "Added"), ("removed", "Removed"), ("updated", "Updated")):
+        items = data.get(key, [])
+        if not items:
+            continue
+        out += f"  - *{sub}:*\n"
+        for it in items:
+            title = it.get("title", "Untitled")
+            url = it.get("url", "")
+            out += f"    • <{url}|{title}>\n" if url else f"    • {title}\n"
+    return out
+
+
+def build_analysis_thread_blocks(result):
+    """Decorated Block Kit blocks for ONE company's AI Analysis thread reply.
+
+    The main report already carries the per-company Blog/Career change list, so
+    the thread reply holds only the AI narrative (which exists for career
+    changes). Returns None when there is no AI analysis to post.
+    """
+    analysis = result.get("analysis")
+    if not analysis:
+        return None
+    company = result.get("company", "Unknown")
+    links = COMPANY_LINKS.get(company, {})
+
+    blocks = [{
+        "type": "header",
+        "text": {"type": "plain_text", "text": f"📊 {company} · AI Analysis", "emoji": True},
+    }]
+    for chunk in _chunk_mrkdwn(analysis):
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": chunk}})
+    if links.get("career"):
+        blocks.append({"type": "context", "elements": [
+            {"type": "mrkdwn", "text": f"🔗 <{links['career']}|채용 페이지 보기>"}]})
+    return blocks
+
+
+def format_slack_message(results):
+    """Main report (root message): per-company Blog/Career change list.
+
+    The AI analysis is NOT inlined here — it is posted as a decorated thread
+    reply under this message (see build_analysis_thread_blocks /
+    send_slack_notification) so the root stays focused on what changed.
+    """
     blocks = [
         {
             "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": f"🤖 Daily Company Crawler Report",
-                "emoji": True
-            }
+            "text": {"type": "plain_text", "text": "🤖 Daily Company Crawler Report", "emoji": True},
         },
         {
             "type": "context",
             "elements": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Date:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S KST')}"
-                }
-            ]
+                {"type": "mrkdwn", "text": f"*Date:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S KST')}"}
+            ],
         },
-        {
-            "type": "divider"
-        }
+        {"type": "divider"},
     ]
 
     has_updates = False
-
     for result in results:
         if not result:
             continue
-
         company = result.get("company", "Unknown")
+        links = COMPANY_LINKS.get(company, {})
         company_text = f"*{company}*\n"
 
         if "error" in result:
             company_text += f"❌ *Error:* {result['error']}\n"
-            blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": company_text
-                }
-            })
+            for chunk in _chunk_mrkdwn(company_text):
+                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": chunk}})
             blocks.append({"type": "divider"})
             continue
 
-        # Blog/Research updates
-        blog_data = result.get("blog") or result.get("research", {})
+        blog_data = _blog_data_of(result)
         if blog_data:
-            status = blog_data.get("status", "initialized")
-            if status == "updated":
+            if blog_data.get("status") == "updated":
                 has_updates = True
-                added = blog_data.get("added", [])
-                removed = blog_data.get("removed", [])
-                updated = blog_data.get("updated", [])
+            company_text += _render_section(_label("Blog", links.get("blog")), blog_data)
 
-                company_text += "- *Blog:*\n"
-                if added:
-                    company_text += "  - *Added:*\n"
-                    for post in added:
-                        title = post.get('title', 'Untitled')
-                        url = post.get('url', '')
-                        if url:
-                            company_text += f"    • <{url}|{title}>\n"
-                        else:
-                            company_text += f"    • {title}\n"
-                if removed:
-                    company_text += "  - *Removed:*\n"
-                    for post in removed:
-                        title = post.get('title', 'Untitled')
-                        url = post.get('url', '')
-                        if url:
-                            company_text += f"    • <{url}|{title}>\n"
-                        else:
-                            company_text += f"    • {title}\n"
-                if updated:
-                    company_text += "  - *Updated:*\n"
-                    for post in updated:
-                        title = post.get('title', 'Untitled')
-                        url = post.get('url', '')
-                        if url:
-                            company_text += f"    • <{url}|{title}>\n"
-                        else:
-                            company_text += f"    • {title}\n"
-            else:
-                company_text += "- *Blog:* Checked\n"
-
-        # Position updates
-        pos_data = result.get("position", {})
+        pos_data = result.get("position") or {}
         if pos_data:
-            status = pos_data.get("status", "initialized")
-            if status == "updated":
+            if pos_data.get("status") == "updated":
                 has_updates = True
-                added = pos_data.get("added", [])
-                removed = pos_data.get("removed", [])
-                updated = pos_data.get("updated", [])
+            company_text += _render_section(_label("Career", links.get("career")), pos_data)
 
-                company_text += "- *Career:*\n"
-                if added:
-                    company_text += "  - *Added:*\n"
-                    for pos in added:
-                        title = pos.get('title', 'Untitled')
-                        url = pos.get('url', '')
-                        if url:
-                            company_text += f"    • <{url}|{title}>\n"
-                        else:
-                            company_text += f"    • {title}\n"
-                if removed:
-                    company_text += "  - *Removed:*\n"
-                    for pos in removed:
-                        title = pos.get('title', 'Untitled')
-                        url = pos.get('url', '')
-                        if url:
-                            company_text += f"    • <{url}|{title}>\n"
-                        else:
-                            company_text += f"    • {title}\n"
-                if updated:
-                    company_text += "  - *Updated:*\n"
-                    for pos in updated:
-                        title = pos.get('title', 'Untitled')
-                        url = pos.get('url', '')
-                        if url:
-                            company_text += f"    • <{url}|{title}>\n"
-                        else:
-                            company_text += f"    • {title}\n"
-            else:
-                company_text += "- *Career:* Checked\n"
-
-        # Add AI analysis if available
-        analysis = result.get("analysis")
-        if analysis:
-            company_text += "\n📊 *AI Analysis*\n"
-            company_text += f"{analysis}\n"
-
-        # Add company section (split into multiple blocks if it exceeds
-        # Slack's 3000-char per-block limit — e.g. a brand-new company whose
-        # entire post/position list lands in "Added" on the first run).
+        # Split into multiple blocks if it exceeds Slack's 3000-char per-block
+        # limit (e.g. a brand-new company whose whole list lands in "Added").
         for chunk in _chunk_mrkdwn(company_text):
-            blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": chunk
-                }
-            })
-
-        # Add blank line (divider) after each company
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": chunk}})
         blocks.append({"type": "divider"})
 
-    # Summary
     if not has_updates:
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "✅ *Summary:* No significant changes detected"
-            }
-        })
+        blocks.append({"type": "section", "text": {"type": "mrkdwn",
+            "text": "✅ *Summary:* No significant changes detected"}})
     else:
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "🔔 *Summary:* Updates detected! Check details above."
-            }
-        })
+        blocks.append({"type": "section", "text": {"type": "mrkdwn",
+            "text": "🔔 *Summary:* Updates detected! AI 분석은 각 기업 쓰레드 댓글을 확인하세요."}})
 
     return {"blocks": blocks}
 
@@ -456,14 +423,38 @@ def send_slack_notification(results):
             channel=channel_id,
             text="🤖 Daily Company Crawler Report",
             blocks=message["blocks"],
+            unfurl_links=False,   # suppress automatic link-preview cards
+            unfurl_media=False,
         )
 
-        if response["ok"]:
-            print(f"\n✅ Slack notification sent to channel {channel_id}!")
-            return True
-        else:
+        if not response["ok"]:
             print(f"\n❌ Failed: {response.get('error')}")
             return False
+
+        print(f"\n✅ Slack notification sent to channel {channel_id}!")
+
+        # Post each company's AI analysis as a decorated thread reply, keeping
+        # the per-company change list in the root message above.
+        thread_ts = response["ts"]
+        for result in results:
+            if not result or "error" in result:
+                continue
+            blocks = build_analysis_thread_blocks(result)
+            if not blocks:
+                continue
+            company = result.get("company", "Unknown")
+            try:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text=f"📊 {company} · AI Analysis",
+                    blocks=blocks,
+                    unfurl_links=False,
+                    unfurl_media=False,
+                )
+            except Exception as e:
+                print(f"⚠️  Failed to post thread reply for {company}: {e}")
+        return True
 
     except Exception as e:
         print(f"\n❌ Error sending Slack notification: {e}")
@@ -483,15 +474,29 @@ def send_slack_notification_webhook(results):
         message = format_slack_message(results)
         response = requests.post(
             webhook_url,
-            json=message,
+            json={**message, "unfurl_links": False, "unfurl_media": False},
             headers={'Content-Type': 'application/json'}
         )
-        if response.status_code == 200:
-            print("\n✅ Slack notification sent via webhook!")
-            return True
-        else:
+        if response.status_code != 200:
             print(f"\n❌ Failed: {response.status_code} {response.text}")
             return False
+
+        print("\n✅ Slack notification sent via webhook!")
+
+        # Webhooks can't thread, so post each company's AI analysis as a
+        # separate follow-up message instead of a thread reply.
+        for result in results:
+            if not result or "error" in result:
+                continue
+            blocks = build_analysis_thread_blocks(result)
+            if not blocks:
+                continue
+            requests.post(
+                webhook_url,
+                json={"blocks": blocks, "unfurl_links": False, "unfurl_media": False},
+                headers={'Content-Type': 'application/json'},
+            )
+        return True
     except Exception as e:
         print(f"\n❌ Error: {e}")
         return False

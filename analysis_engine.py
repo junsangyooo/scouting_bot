@@ -33,6 +33,7 @@ COMPANIES = {
     "generalist_ai": {"name": "Generalist AI", "prefix": "generalist", "data_dir": BASE_DIR / "data" / "generalist_ai"},
     "sunday": {"name": "Sunday Robotics", "prefix": "sunday", "data_dir": BASE_DIR / "data" / "sunday"},
     "genesis": {"name": "Genesis AI", "prefix": "genesis", "data_dir": BASE_DIR / "data" / "genesis"},
+    "rhoda": {"name": "Rhoda AI", "prefix": "rhoda", "data_dir": BASE_DIR / "data" / "rhoda"},
 }
 
 # token -> canonical company key
@@ -44,6 +45,7 @@ ALIASES = {
     "generalist": "generalist_ai", "generalist_ai": "generalist_ai", "generalistai": "generalist_ai",
     "sunday": "sunday", "sunday_robotics": "sunday", "sundayrobotics": "sunday",
     "genesis": "genesis", "genesis_ai": "genesis", "genesisai": "genesis",
+    "rhoda": "rhoda", "rhoda_ai": "rhoda", "rhodaai": "rhoda",
 }
 
 
@@ -57,10 +59,15 @@ def resolve_company(token):
     t2 = t.replace("_", "")
     if t2 in ALIASES:
         return ALIASES[t2]
-    # substring fallback against keys/aliases
-    for alias, key in ALIASES.items():
-        if t2 and (t2 in alias.replace("_", "") or alias.replace("_", "") in t2):
-            return key
+    # Prefix fallback: match the token as a PREFIX of an alias, and accept it
+    # only when it unambiguously points to ONE company. This keeps 'rho'->rhoda
+    # and 'skil'->skild_ai working while refusing ambiguous/garbage tokens —
+    # e.g. 'gen' (genesis vs generalist) and 'ai' now return None instead of
+    # silently mis-routing to the wrong company (was: bidirectional substring).
+    if len(t2) >= 3:
+        hits = {key for alias, key in ALIASES.items() if alias.replace("_", "").startswith(t2)}
+        if len(hits) == 1:
+            return next(iter(hits))
     return None
 
 
@@ -237,7 +244,11 @@ def build_position_events(company, start, end):
     for d, p in snaps:
         data = load_snapshot(p) or []
         loaded.append((d, data))
-        result["headcount_series"].append((d, len(data)))
+        # Count DISTINCT ids so headcount agrees with the id-deduped event walk
+        # (velocity/opens/closes). Raw len(data) would double-count snapshots
+        # with duplicate ids (e.g. a slug collision) and make net headcount
+        # contradict net velocity in the same card.
+        result["headcount_series"].append((d, len({p.get("id") for p in data})))
     result["start_state"] = loaded[0][1]
     result["end_state"] = loaded[-1][1]
 

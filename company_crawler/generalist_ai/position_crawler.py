@@ -55,7 +55,11 @@ def position_crawler():
                 continue
 
             positions.append({
-                "id": _make_job_id(title),
+                # Use the unique Ashby posting UUID as id, not a title slug —
+                # two postings can share a title (e.g. "Office Manager" SFO + BOS),
+                # and a slug collision silently merges them (one role becomes
+                # invisible to open/close tracking and headcount/velocity disagree).
+                "id": posting_id or _make_job_id(title),
                 "title": title,
                 "location": location,
                 "compensation": "",

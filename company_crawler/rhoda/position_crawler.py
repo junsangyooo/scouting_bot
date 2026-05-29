@@ -3,13 +3,14 @@ from typing import List, Dict
 import hashlib
 import time
 
-# Genesis AI hosts its jobs on Ashby (same platform as DYNA / Sunday). The
-# careers page links directly to each Ashby detail page and already carries
-# title / department / location / workplace inline, so we crawl the careers
-# page for the job list, then visit each Ashby detail page for the full JD.
-CAREERS_URL = "https://www.genesis.ai/careers"
+# Rhoda AI hosts its jobs on Ashby (same platform as DYNA / Sunday / Genesis).
+# rhoda.ai/careers merely embeds the Ashby board in an iframe
+# (<iframe src="https://jobs.ashbyhq.com/rhoda-ai?embed=js">), so the actual job
+# list lives on the cross-origin board below — we crawl that board directly.
+# The board listing already carries title / department / location / workplace
+# inline; each job's Ashby detail page holds the full JD + compensation.
+RHODA_BOARD_URL = "https://jobs.ashbyhq.com/rhoda-ai"
 ASHBY_HOST = "https://jobs.ashbyhq.com"
-ASHBY_MARKER = "jobs.ashbyhq.com/genesis-ai/"
 
 
 def position_crawler() -> List[Dict]:
@@ -18,61 +19,60 @@ def position_crawler() -> List[Dict]:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto(CAREERS_URL, wait_until="domcontentloaded", timeout=60000)
-        # genesis.ai is SvelteKit CSR — the Ashby job links are injected only
-        # after JS runs. A fixed sleep was racy: on a slow render it returned 0
-        # links, and (pre-guard) that wiped the snapshot + fired a false
-        # "all removed" report. Wait for the links to actually appear instead.
+        page.goto(RHODA_BOARD_URL, timeout=40000)
         try:
-            page.wait_for_selector('a[href*="jobs.ashbyhq.com/genesis-ai/"]', timeout=30000)
+            page.wait_for_load_state("networkidle", timeout=20000)
         except TimeoutError:
-            print("[WARN] Ashby job links did not render within 30s")
-        page.wait_for_timeout(1500)
+            pass
+        page.wait_for_timeout(2500)
 
-        # 1️⃣ 채용 공고 목록 수집 (careers 페이지의 Ashby 링크)
-        jobs = page.eval_on_selector_all(
-            'a[href*="jobs.ashbyhq.com/genesis-ai/"]',
-            """els => {
+        # 1️⃣ 채용 공고 목록 수집 (Ashby 보드의 UUID 상세 링크만)
+        jobs = page.evaluate(r"""
+            () => {
+                const links = document.querySelectorAll('a[href*="/rhoda-ai/"]');
                 const seen = new Set();
                 const out = [];
-                els.forEach(a => {
+                links.forEach(a => {
                     const href = a.getAttribute('href') || '';
-                    if (!href || seen.has(href)) return;
+                    // UUID 패턴 상세 페이지만 (목록/필터 링크 제외)
+                    if (!/\/rhoda-ai\/[a-f0-9-]{36}$/.test(href) || seen.has(href)) return;
                     seen.add(href);
-                    const lines = (a.innerText || '')
-                        .split('\\n')
-                        .map(l => l.trim())
-                        .filter(Boolean)
-                        .filter(l => l.toLowerCase() !== 'apply');
-                    out.push({ href, lines });
+                    const h3 = a.querySelector('h3');
+                    const p = a.querySelector('p');
+                    out.push({
+                        href: href,
+                        title: h3 ? h3.innerText.trim() : '',
+                        meta: p ? p.innerText.trim() : '',
+                    });
                 });
                 return out;
-            }""",
-        )
+            }
+        """)
 
-        print(f"[INFO] Found {len(jobs)} position links")
+        print(f"[INFO] Found {len(jobs)} job postings")
 
         # 2️⃣ 각 공고의 Ashby 상세 페이지에서 JD/보상 추출
         for idx, job in enumerate(jobs):
+            title = job["title"]
             href = job["href"]
-            lines = job["lines"]
-            if not lines:
+            if not title:
                 continue
+            full_url = f"{ASHBY_HOST}{href}"
 
-            # careers 카드 라인: [title, department, location, workplace]
-            title = lines[0]
-            department = lines[1] if len(lines) > 1 else ""
-            location = lines[2] if len(lines) > 2 else ""
-            workplace = lines[3] if len(lines) > 3 else ""
+            # 목록 메타라인: "Department • Location • Full time • On-site"
+            parts = [s.strip() for s in (job["meta"] or "").split("•") if s.strip()]
+            department = parts[0] if len(parts) > 0 else ""
+            list_location = parts[1] if len(parts) > 1 else ""
+            workplace = parts[3] if len(parts) > 3 else ""
 
-            # Ashby UUID를 안정적인 id로 사용 (제목 중복 location 문제 회피)
+            # Ashby UUID를 안정적인 id로 사용 (제목 중복/location 변동에 견고)
             job_id = href.rstrip("/").split("/")[-1]
 
             print(f"[INFO] ({idx+1}/{len(jobs)}) Processing: {title}")
 
-            detail = _extract_detail(page, href)
+            detail = _extract_detail(page, full_url)
             description = detail["description"]
-            location = detail["location"] or location
+            location = detail["location"] or list_location
             compensation = detail["compensation"]
 
             if not description:
@@ -87,7 +87,7 @@ def position_crawler() -> List[Dict]:
                 "compensation": compensation,
                 "description": description,
                 "description_hash": _hash_text(description),
-                "url": href,
+                "url": full_url,
             })
 
             time.sleep(0.5)  # polite delay
@@ -97,17 +97,15 @@ def position_crawler() -> List[Dict]:
     return positions
 
 
-def _extract_detail(page, url, retries=3) -> Dict:
+def _extract_detail(page, full_url, retries=3) -> Dict:
     """Ashby 상세 페이지에서 location / compensation / description 추출."""
-    full_url = url if url.startswith("http") else f"{ASHBY_HOST}{url}"
-
     for attempt in range(retries):
         try:
             page.goto(full_url, wait_until="domcontentloaded", timeout=60000)
             page.wait_for_load_state("networkidle", timeout=30000)
-            page.wait_for_timeout(1500)
+            page.wait_for_timeout(1200)
 
-            data = page.evaluate("""
+            data = page.evaluate(r"""
                 () => {
                     const result = { location: '', compensation: '', description: '' };
 
@@ -136,13 +134,13 @@ def _extract_detail(page, url, retries=3) -> Dict:
                     if (descEl) {
                         const clone = descEl.cloneNode(true);
                         clone.querySelectorAll('h2').forEach(h2 => {
-                            h2.innerHTML = '\\n\\n## ' + h2.innerText + '\\n';
+                            h2.innerHTML = '\n\n## ' + h2.innerText + '\n';
                         });
                         clone.querySelectorAll('li').forEach(li => {
-                            li.innerHTML = '• ' + li.innerText + '\\n';
+                            li.innerHTML = '• ' + li.innerText + '\n';
                         });
                         clone.querySelectorAll('p').forEach(p => {
-                            if (p.innerText.trim()) p.innerHTML = p.innerText + '\\n';
+                            if (p.innerText.trim()) p.innerHTML = p.innerText + '\n';
                         });
                         result.description = clone.innerText.trim();
                     }
@@ -153,7 +151,6 @@ def _extract_detail(page, url, retries=3) -> Dict:
 
             if data["description"] and len(data["description"]) >= 30:
                 return data
-            # description이 비어도 location은 잡혔을 수 있으니 마지막 시도면 반환
             if attempt == retries - 1:
                 return data
 
@@ -173,5 +170,5 @@ if __name__ == "__main__":
     data = position_crawler()
     print(f"\n[RESULT] Crawled {len(data)} positions\n")
     for pos in data:
-        print(f"  - {pos['title']} | {pos['location']} | {pos['workplace']}")
+        print(f"  - {pos['title']} | {pos['department']} | {pos['location']} | {pos['workplace']}")
         print(f"    comp: {pos['compensation']!r}  desc: {len(pos['description'])} chars")

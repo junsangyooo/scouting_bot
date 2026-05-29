@@ -35,6 +35,15 @@ def position_compare(curr_positions):
     # 2️⃣ 이전 데이터 로드
     prev_positions = json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
+    # Guard: a completely empty crawl almost always means the crawler broke
+    # (selector/site change, network) — not that every posting truly vanished.
+    # Never overwrite good data or fire a false "all removed" report on it.
+    if not curr_positions and prev_positions:
+        print(f"[WARN] Empty crawl but {len(prev_positions)} previous positions exist — "
+              "treating as crawl failure; keeping previous data.")
+        return {"status": "checked"}
+
+
     prev_map = {p["id"]: p for p in prev_positions}
     curr_map = {p["id"]: p for p in curr_positions}
 

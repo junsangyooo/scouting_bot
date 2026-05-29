@@ -24,6 +24,15 @@ def position_compare(curr_items: List[Dict]) -> Dict:
     except Exception:
         prev_items = []
 
+    # Guard: a completely empty crawl almost always means the crawler broke
+    # (selector/site change, network) — not that every posting truly vanished.
+    # Never overwrite good data or fire a false "all removed" report on it.
+    if not curr_items and prev_items:
+        print(f"[WARN] Empty crawl but {len(prev_items)} previous positions exist — "
+              "treating as crawl failure; keeping previous data.")
+        return {"status": "checked"}
+
+
     prev_map = {p["id"]: p for p in prev_items}
     curr_map = {p["id"]: p for p in curr_items}
 

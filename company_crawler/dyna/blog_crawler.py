@@ -1,147 +1,109 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError
 import hashlib
 import re
 import time
 
 BASE_URL = "https://www.dyna.co"
-DYNA_RESEARCH_URL = f"{BASE_URL}/research"
+
+# dyna.co was rebuilt as a Lovable SPA. Research/company posts now live on two
+# pages that share the SAME card markup, so we track both as one "blog" stream
+# (mirrors genesis merging /blog + /press). Each card is a router-driven
+# `div.group.cursor-pointer` with an <h2>/<h3> title, a `p.hidden.md:block`
+# excerpt and a date <span> in "MMM 'YY" form — and NO <a> href (navigation is
+# client-side), so we can't capture a per-post URL and link to the listing page.
+LIST_PAGES = [
+    ("research", f"{BASE_URL}/research"),
+    ("blog", f"{BASE_URL}/blog"),
+]
+
+_MONTHS = {
+    "JAN": "01", "FEB": "02", "MAR": "03", "APR": "04",
+    "MAY": "05", "JUN": "06", "JUL": "07", "AUG": "08",
+    "SEP": "09", "OCT": "10", "NOV": "11", "DEC": "12",
+}
+
 
 def generate_id(title: str, date: str) -> str:
     return hashlib.md5(f"{title}_{date}".encode()).hexdigest()
 
+
 def parse_date(raw: str) -> str:
-    """
-    'JUN 15 '25' -> '2025-06-15'
-    """
-    match = re.match(r"([A-Z]{3})\s+(\d{1,2})\s+'(\d{2})", raw.strip())
-    if not match:
-        return raw
-    month_str, day, year_short = match.groups()
-    months = {
-        "JAN": "01", "FEB": "02", "MAR": "03", "APR": "04",
-        "MAY": "05", "JUN": "06", "JUL": "07", "AUG": "08",
-        "SEP": "09", "OCT": "10", "NOV": "11", "DEC": "12"
-    }
-    month = months.get(month_str, "01")
-    year = f"20{year_short}"
-    return f"{year}-{month}-{day.zfill(2)}"
+    """'JUN 15 '25' -> '2025-06-15'; new 'MMM \\'YY' (no day) -> '2025-06-01'."""
+    raw = (raw or "").strip()
+    m = re.match(r"([A-Z]{3})\s+(\d{1,2})\s+'(\d{2})", raw)  # MMM DD 'YY (legacy)
+    if m:
+        mo, da, yy = m.groups()
+        return f"20{yy}-{_MONTHS.get(mo, '01')}-{da.zfill(2)}"
+    m = re.match(r"([A-Z]{3})\s+'?(\d{2})$", raw)            # MMM 'YY (current)
+    if m:
+        mo, yy = m.groups()
+        return f"20{yy}-{_MONTHS.get(mo, '01')}-01"
+    return raw
+
 
 def blog_crawler():
     results = []
+    seen = set()
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto(DYNA_RESEARCH_URL, wait_until="networkidle")
-        time.sleep(2)  # 페이지 완전 로딩 대기
 
-        # 페이지 전체 HTML에서 카드 정보와 URL 추출
-        # JavaScript로 직접 데이터 수집
-        card_data = page.evaluate("""
-            () => {
-                const cards = document.querySelectorAll('div.flex.flex-col.mb-16');
-                const results = [];
-
-                cards.forEach((card, index) => {
-                    const title = card.querySelector('h2')?.innerText?.trim() || '';
-                    const excerpt = card.querySelector('p.leading-relaxed')?.innerText?.trim() || '';
-
-                    // 날짜 찾기
-                    let date = '';
-                    const divs = card.querySelectorAll('div.mb-4');
-                    divs.forEach(div => {
-                        const text = div.innerText?.trim() || '';
-                        if (/[A-Z]{3}\\s+\\d{1,2}\\s+'?\\d{2}/.test(text)) {
-                            date = text;
-                        }
-                    });
-
-                    results.push({
-                        title: title,
-                        excerpt: excerpt,
-                        date_raw: date,
-                        index: index
-                    });
-                });
-
-                return results;
-            }
-        """)
-
-        print(f"[INFO] Found {len(card_data)} research cards")
-
-        # 각 카드의 Read More 버튼 클릭하여 URL 수집
-        for data in card_data:
-            print(f"[INFO] Processing: {data['title']}")
-
-            final_url = None
-
+        for section, url in LIST_PAGES:
             try:
-                # JavaScript로 버튼 클릭
-                before_url = page.url
+                page.goto(url, wait_until="networkidle", timeout=60000)
+            except TimeoutError:
+                page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            time.sleep(3)  # SPA cards fade in after load
 
-                clicked = page.evaluate(f"""
-                    () => {{
-                        const cards = document.querySelectorAll('div.flex.flex-col.mb-16');
-                        const card = cards[{data['index']}];
-                        if (!card) return false;
+            cards = page.evaluate(r"""
+                () => {
+                    const out = [];
+                    document.querySelectorAll('div.cursor-pointer').forEach(card => {
+                        const h = card.querySelector('h2, h3');
+                        if (!h) return;
+                        const title = (h.innerText || '').trim();
+                        if (!title) return;
+                        const p = card.querySelector('p');
+                        const excerpt = p ? (p.innerText || '').trim() : '';
+                        let date_raw = '';
+                        card.querySelectorAll('span').forEach(s => {
+                            const t = (s.innerText || '').trim();
+                            if (/^[A-Z]{3}\s+(\d{1,2}\s+)?'?\d{2}$/.test(t)) date_raw = t;
+                        });
+                        out.push({ title, excerpt, date_raw });
+                    });
+                    return out;
+                }
+            """)
 
-                        const btn = card.querySelector('button');
-                        if (btn) {{
-                            btn.click();
-                            return true;
-                        }}
-                        return false;
-                    }}
-                """)
+            print(f"[INFO] {section}: found {len(cards)} cards")
 
-                if not clicked:
-                    print(f"[WARN] Could not click button for: {data['title']}")
-                else:
-                    # URL 변경 대기
-                    max_wait = 10
-                    waited = 0
-                    while waited < max_wait:
-                        time.sleep(0.5)
-                        waited += 0.5
-                        current_url = page.url
-                        if current_url != before_url:
-                            final_url = current_url
-                            print(f"[INFO] URL found: {final_url}")
-                            break
-
-                    # 리서치 페이지로 돌아가기
-                    if final_url:
-                        page.goto(DYNA_RESEARCH_URL, wait_until="networkidle")
-                        time.sleep(1)
-
-            except Exception as e:
-                print(f"[ERROR] {data['title']}: {e}")
-                try:
-                    page.goto(DYNA_RESEARCH_URL, wait_until="networkidle")
-                    time.sleep(1)
-                except:
-                    pass
-
-            date_formatted = parse_date(data["date_raw"])
-            item_id = generate_id(data["title"], date_formatted)
-
-            results.append({
-                "id": item_id,
-                "title": data["title"],
-                "date": date_formatted,
-                "type": "research",
-                "excerpt": data["excerpt"],
-                "url": final_url
-            })
+            for c in cards:
+                title = c["title"]
+                date = parse_date(c["date_raw"])
+                item_id = generate_id(title, date)
+                if item_id in seen:
+                    continue
+                seen.add(item_id)
+                results.append({
+                    "id": item_id,
+                    "title": title,
+                    "date": date,
+                    "type": section,
+                    "excerpt": c["excerpt"],
+                    "url": url,   # per-post URLs aren't exposed (router-driven cards)
+                })
 
         browser.close()
+
+    print(f"[INFO] Found {len(results)} research/blog posts")
     return results
+
 
 if __name__ == "__main__":
     data = blog_crawler()
     print(f"\n[RESULT] Total {len(data)} items crawled:\n")
     for item in data:
-        print(f"  - {item['title']}")
-        print(f"    Date: {item['date']}")
-        print(f"    URL: {item['url']}")
-        print()
+        print(f"  - [{item['type']}] {item['title']}  ({item['date']})")
+        print(f"    {item['excerpt'][:80]}")
