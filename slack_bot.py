@@ -7,7 +7,6 @@ Handles /analyze slash command and can send daily reports.
 import json
 import os
 import logging
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -15,10 +14,12 @@ from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
+from claude_cli import run_claude
+
 load_dotenv()
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -113,6 +114,7 @@ from analysis_engine import (
     _fmt_date,
     _mix_line,
 )
+from history_engine import deleted_positions, get_position_record
 
 
 def find_snapshot(data_dir, prefix, file_type, date_str):
@@ -239,26 +241,11 @@ JD(Job Description) 변경이 있는 경우, 변경 내용의 핵심을 요약�
 
 
 def run_claude_analysis(prompt):
-    """Run Claude CLI to analyze the data."""
-    try:
-        result = subprocess.run(
-            ["claude", "-p", "--model", "sonnet"],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-        else:
-            logger.error(f"Claude CLI failed: {result.stderr}")
-            return None
-    except subprocess.TimeoutExpired:
-        logger.error("Claude CLI timeout")
-        return None
-    except Exception as e:
-        logger.error(f"Claude CLI error: {e}")
-        return None
+    """Run Claude CLI to analyze the data (retry + backoff via claude_cli).
+
+    Returns the analysis text, or None after retries are exhausted. The callers
+    already degrade gracefully on None (post a "AI 분석 생성에 실패했습니다" reply)."""
+    return run_claude(prompt, label="slack", log=logger.warning)
 
 
 # ==========================================
@@ -322,19 +309,28 @@ def handle_analyze(ack, respond, command):
         app.client.chat_postMessage(channel=command["channel_id"], text=msg)
         return
 
-    # Build summary message
-    summary_blocks = build_summary_blocks(start_date, end_date, results)
-    summary_resp = app.client.chat_postMessage(
+    # Post a compact root message; the summary + AI analysis go into its thread
+    # so the channel timeline stays one line per /analyze.
+    root_resp = app.client.chat_postMessage(
         channel=command["channel_id"],
+        text=f"📊 *Company Change Analysis* — {formatted_start} → {formatted_end}\n_결과·AI 분석은 이 스레드에 ⬇️_",
+        unfurl_links=False,
+        unfurl_media=False,
+    )
+    thread_ts = root_resp["ts"]
+
+    # Summary (Block Kit) as the first thread reply.
+    summary_blocks = build_summary_blocks(start_date, end_date, results)
+    app.client.chat_postMessage(
+        channel=command["channel_id"],
+        thread_ts=thread_ts,
         text=f"📊 {formatted_start} ~ {formatted_end} 분석 결과",
         blocks=summary_blocks,
         unfurl_links=False,   # suppress automatic link-preview cards
         unfurl_media=False,
     )
-    thread_ts = summary_resp["ts"]
 
-    # Run Claude analysis — posted as a thread reply under the summary to keep
-    # the channel timeline lightweight.
+    # Run Claude analysis — posted as further thread replies under the root.
     prompt = build_analysis_prompt(start_date, end_date, results)
     analysis = run_claude_analysis(prompt)
 
@@ -580,7 +576,14 @@ def run_company_report(client, channel_id, company_key, start, end):
     company = COMPANIES[company_key]
     name = company["name"]
     label = "전체 기간" if not start else f"{_fmt_date(start)} ~ {_fmt_date(end)}"
-    client.chat_postMessage(channel=channel_id, text=f"🔍 *{name}* {label} 분석 중... 잠시만 기다려주세요.")
+    # Root message — the metric card + AI narrative thread under it.
+    root_resp = client.chat_postMessage(
+        channel=channel_id,
+        text=f"🔍 *{name}* {label} 분석 중... _결과는 이 스레드에 ⬇️_",
+        unfurl_links=False,
+        unfurl_media=False,
+    )
+    thread_ts = root_resp["ts"]
 
     metrics, err = analyze(company, start, end)
     if err:
@@ -588,22 +591,24 @@ def run_company_report(client, channel_id, company_key, start, end):
             a0, a1 = err["available"]
             client.chat_postMessage(
                 channel=channel_id,
+                thread_ts=thread_ts,
                 text=f"❌ 해당 기간에 *{name}* 스냅샷이 없습니다.\n사용 가능 범위: `{a0} ~ {a1}`",
             )
         else:
-            client.chat_postMessage(channel=channel_id, text=f"❌ *{name}* 데이터가 없습니다.")
+            client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text=f"❌ *{name}* 데이터가 없습니다.")
         return
 
-    card_resp = client.chat_postMessage(
+    # Metric card as the first thread reply.
+    client.chat_postMessage(
         channel=channel_id,
+        thread_ts=thread_ts,
         text=f"📊 {name} 분석",
         blocks=build_metric_card_blocks(metrics),
         unfurl_links=False,   # suppress automatic link-preview cards
         unfurl_media=False,
     )
-    thread_ts = card_resp["ts"]
 
-    # AI narrative posted as a thread reply under the metric card.
+    # AI narrative posted as further thread replies under the root.
     analysis = run_claude_analysis(build_ai_prompt(metrics))
     if analysis:
         for chunk in chunk_mrkdwn(f"🤖 *AI 해설 — {name}*\n\n{analysis}"):
@@ -623,6 +628,216 @@ for _company_key in COMPANIES:
             run_company_report(client, channel_id, ckey, None, None)
 
     _make_handler(_company_key)
+
+
+# ==========================================
+# /deleted_jd command — browse no-longer-posted positions and read their full JD
+# ==========================================
+#
+# 3-step flow (company first avoids cross-company title collisions; id-deduped
+# list avoids same-title-different-job collisions within a company):
+#   /deleted_jd            -> company picker buttons
+#   pick a company         -> static_select of that company's deleted positions
+#   pick a position        -> full stored JD body (verbatim, no AI)
+#
+# Read-only over existing snapshots — touches no crawler/daily-pipeline code.
+# The select carries an INDEX (not the id) because some ids exceed Slack's
+# 75-char option-value limit; handlers re-derive the deterministic list to map
+# the index back to a position.
+
+
+@app.command("/deleted_jd")
+def handle_deleted_jd(ack, respond, command):
+    ack()
+
+    args = command.get("text", "").strip().split()
+
+    # No args → company picker buttons.
+    if not args:
+        buttons = [
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": company["name"], "emoji": True},
+                "action_id": f"deleted_company_{key}",
+                "value": key,
+            }
+            for key, company in COMPANIES.items()
+        ]
+        respond(
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            "🗑️ *삭제된(현재 미게시) 공고를 조회할 회사를 선택하세요*\n"
+                            "또는 바로: `/deleted_jd <회사>`  (예: `/deleted_jd dyna`)"
+                        ),
+                    },
+                },
+                {"type": "actions", "elements": buttons},
+            ]
+        )
+        return
+
+    company_key = resolve_company(args[0])
+    if not company_key or company_key not in COMPANIES:
+        valid = ", ".join(f"`{c['prefix']}`" for c in COMPANIES.values())
+        respond(
+            f"❌ 회사를 찾지 못했어요: `{args[0]}`\n"
+            f"사용법: `/deleted_jd [회사]`\n회사: {valid}"
+        )
+        return
+
+    _post_deleted_picker(app.client, command["channel_id"], company_key)
+
+
+def _post_deleted_picker(client, channel_id, company_key):
+    """Post a static_select of a company's deleted (no-longer-posted) positions."""
+    company = COMPANIES[company_key]
+    name = company["name"]
+    items = deleted_positions(company)
+
+    if not items:
+        client.chat_postMessage(
+            channel=channel_id,
+            text=f"✅ *{name}*: 기록상 삭제된(현재 미게시) 공고가 없습니다.",
+        )
+        return
+
+    # Compact root in the channel; the readable list + dropdown + every opened JD
+    # body all thread under it, so the channel timeline stays a single line.
+    note = "" if len(items) <= 100 else f"  _(최근 100개만 표시 / 총 {len(items)}개)_"
+    root_resp = client.chat_postMessage(
+        channel=channel_id,
+        text=f"🗑️ *{name}* — 삭제된(현재 미게시) 공고 *{len(items)}개*{note}\n_목록·본문은 이 스레드에 ⬇️_",
+        unfurl_links=False,
+        unfurl_media=False,
+    )
+    thread_ts = root_resp["ts"]
+
+    # Slack caps a static_select at 100 options and each option label at 75 chars.
+    shown = items[:100]
+
+    # Full-width readable list (numbered) so the title + deletion date + location
+    # are always visible — the narrow dropdown alone truncates long titles and
+    # hides the date, which is exactly the info the user wants to see at a glance.
+    lines = []
+    for idx, m in enumerate(shown):
+        loc = f"  ·  📍 {m['location']}" if m.get("location") else ""
+        lines.append(
+            f"`{idx + 1:>2}.`  *{m['title']}*  ·  🗓️ 삭제 {_fmt_date(m['last_seen'])}{loc}"
+        )
+
+    # Dropdown options: text = numbered title, description = date+location. The
+    # `description` line shows beneath each option in the menu so the deletion
+    # date stays visible even when the title fills the 75-char text limit.
+    options = []
+    for idx, m in enumerate(shown):
+        txt = f"{idx + 1}. {m['title']}"[:75]
+        desc = f"🗓️ 삭제 {_fmt_date(m['last_seen'])}"
+        if m.get("location"):
+            desc += f" · {m['location']}"
+        options.append({
+            "text": {"type": "plain_text", "text": txt, "emoji": True},
+            "description": {"type": "plain_text", "text": desc[:75], "emoji": True},
+            "value": str(idx),
+        })
+
+    # Readable list (chunked to respect the 3000-char section limit).
+    blocks = []
+    for chunk in chunk_mrkdwn("\n".join(lines)):
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": chunk}})
+    blocks.append({
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": "👇 *조회할 공고를 선택하세요* (번호로 위 목록과 대조)"},
+        "accessory": {
+            "type": "static_select",
+            "placeholder": {"type": "plain_text", "text": "공고 선택", "emoji": True},
+            "action_id": f"deleted_pick_{company_key}",
+            "options": options,
+        },
+    })
+    # List + dropdown as a thread reply under the root.
+    client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_ts,
+        text=f"🗑️ {name} 삭제된 공고",
+        blocks=blocks,
+        unfurl_links=False,
+        unfurl_media=False,
+    )
+
+
+def _post_deleted_jd_body(client, channel_id, company_key, idx, thread_ts=None):
+    """Post the full stored JD body for the idx-th deleted position (verbatim).
+
+    Posted as thread replies under the root (thread_ts) so the list, dropdown,
+    and every JD you open all stay grouped in one thread off the channel."""
+    company = COMPANIES[company_key]
+    name = company["name"]
+    items = deleted_positions(company)
+
+    if idx < 0 or idx >= len(items):
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text="⚠️ 선택한 공고를 찾을 수 없습니다 (목록이 갱신되었을 수 있어요). `/deleted_jd`로 다시 시도해주세요.",
+        )
+        return
+
+    m = items[idx]
+    record, last_seen = get_position_record(company, m["id"])
+    if not record:
+        client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text="⚠️ 공고 본문을 찾지 못했습니다.")
+        return
+
+    title = record.get("title", m["title"])
+    loc = record.get("location", "")
+    comp = record.get("compensation", "")
+    url = record.get("url", "")
+    desc = record.get("description", "").strip() or "_(저장된 본문이 없습니다)_"
+
+    meta_parts = []
+    if loc:
+        meta_parts.append(f"📍 {loc}")
+    if comp:
+        meta_parts.append(f"💰 {comp}")
+    meta_parts.append(
+        f"🗓️ 마지막 노출 {_fmt_date(last_seen)} · 첫 노출 {_fmt_date(m['first_seen'])}"
+    )
+    if url:
+        meta_parts.append(f"🔗 <{url}|원본 링크>")
+
+    header = f"🗑️ *{title}*  ·  _{name}_\n" + "  ·  ".join(meta_parts) + "\n\n" + desc
+
+    for chunk in chunk_mrkdwn(header):
+        client.chat_postMessage(
+            channel=channel_id, thread_ts=thread_ts, text=chunk,
+            unfurl_links=False, unfurl_media=False,
+        )
+
+
+# Register per-company action handlers (button = pick company, select = pick JD).
+for _deleted_key in COMPANIES:
+    def _make_deleted_handlers(ckey):
+        @app.action(f"deleted_company_{ckey}")
+        def handle_deleted_company(ack, body, client):
+            ack()
+            _post_deleted_picker(client, body["channel"]["id"], ckey)
+
+        @app.action(f"deleted_pick_{ckey}")
+        def handle_deleted_pick(ack, body, client):
+            ack()
+            value = body["actions"][0]["selected_option"]["value"]
+            # Thread the JD body under the SAME root as the list+dropdown. The
+            # dropdown message is itself a thread reply, so its `thread_ts` points
+            # to the root; fall back to its own ts if it isn't threaded.
+            msg = body.get("message", {})
+            thread_ts = msg.get("thread_ts") or msg.get("ts")
+            _post_deleted_jd_body(client, body["channel"]["id"], ckey, int(value), thread_ts)
+
+    _make_deleted_handlers(_deleted_key)
 
 
 # ==========================================

@@ -36,9 +36,22 @@ setsid .venv/bin/python slack_bot.py   # PPID 1로 detached, 로그: slack_bot.l
   내부적으로 `analysis_engine.py`가 **범위 내 모든 스냅샷을 연속쌍으로 walk**해(중간에 열렸다 닫힌 공고까지 포착)
   채용 추이·속도·직무/시니어리티 믹스·지역·공고수명·블로그 cadence/테마를 **결정론적으로 계산** → Block Kit 카드,
   그 요약을 claude CLI에 넘겨 AI 해설을 덧붙임. 회사 토큰은 prefix/별칭 fuzzy 매칭(`resolve_company`).
+- `/deleted_jd [회사]` — **삭제된(현재 미게시) 공고의 원문 JD 열람** (3-스텝, AI 호출 없음).
+  인자 없이 호출하면 회사 선택 버튼(ephemeral) → 컴팩트 **루트 메시지** 1줄을 채널에 남기고, 그 **스레드 안에** 삭제 공고를
+  **전체 폭 번호 목록**(`번호. 제목 · 🗓️삭제일 · 위치`) + *드롭다운*(`static_select`)을 올린다. 드롭다운 옵션은 `text`=`번호. 제목`, **`description`=삭제일·위치**라 좁은 메뉴에서도 삭제일이 항상 보임 →
+  하나 선택하면 **저장된 description 본문을 원문 그대로** 출력(`chunk_mrkdwn`으로 분할), **같은 루트 스레드 답글로** 달림(목록·본문 전부 한 스레드). `/deleted_jd dyna`처럼 회사 바로 지정도 가능.
+  "삭제됨"의 정의 = *과거 어느 스냅샷엔 있었으나 최신 스냅샷엔 없는* 공고(재오픈돼 현재 열린 건 제외). id로 dedup하므로
+  동명(同名) 다른 공고/회사간 충돌이 안 난다. 엔진은 `history_engine.py`(아래) — 재크롤 없이 기존 스냅샷만 읽음.
+  ⚠️ **셀렉트 `value`엔 id가 아니라 인덱스를 싣는다** — 일부 id가 Slack 옵션 value 75자 한도를 넘기 때문(핸들러가 결정론적 목록을 재계산해 매핑).
+- **인터랙티브 봇 3개 커맨드(`/analyze`·`/company_analyze`·`/deleted_jd`)는 모두 결과를 "컴팩트 루트 메시지 + 스레드 답글" 구조로 보낸다** —
+  채널엔 한 줄(루트)만 남고 요약/AI카드/JD본문은 전부 그 스레드 안으로. 새 출력 코드 추가 시에도 `thread_ts`를 물려 스레드로 보낼 것. (일일 리포트의 스레드 구조와는 별개 — 그건 `daily_crawler.py`.)
+- 로그 레벨은 `LOG_LEVEL` env로 토글(기본 `INFO`). 소켓 수신 프레임까지 보려면 `LOG_LEVEL=DEBUG`로 기동.
 - 분석 엔진 `analysis_engine.py`는 Slack/env 비의존 — `.venv/bin/python analysis_engine.py <회사> [시작] [종료]`로 단독 검증 가능.
+- 히스토리 엔진 `history_engine.py`도 Slack/env 비의존 — `deleted_positions(company, start, end)` / `get_position_record(company, id)` 두 read-only 함수.
+  `.venv/bin/python history_engine.py <회사> [시작] [종료]`로 단독 검증 가능. `snapshots_in_range`·`load_snapshot`·`resolve_company` 등 기존 헬퍼 재활용.
 - 비교 로직은 `compare_utils.py` (`compare_positions`, `compare_blogs`, `load_snapshot`) 공유. `analysis_engine`도 이를 재활용.
 - **재시작 방법**: 기존 프로세스 `kill` 후 위 명령으로 재기동. 코드를 고쳐도 **프로세스를 재시작해야 반영됨.**
+- ⚠️ **새 슬래시 커맨드는 코드만으론 안 뜬다** — Slack 앱 설정(api.slack.com → 해당 앱 → *Slash Commands* → Create New Command)에 커맨드 이름을 **등록**해야 봇 소켓으로 전달된다(Socket Mode라 Request URL은 비워도 됨). 등록 후 워크스페이스 **Reinstall**이 필요할 수 있음. 버튼/셀렉트 같은 *액션 핸들러*는 등록 불필요(슬래시 진입점만 등록). 커맨드를 쳤는데 `slack_bot.log`에 아무 이벤트도 안 찍히면 = 거의 항상 이 등록/소켓 전달 문제(코드 아님).
 
 ## 회사별 크롤러 구조 (`company_crawler/<company>/`)
 

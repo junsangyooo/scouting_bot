@@ -11,10 +11,11 @@ import shutil
 from datetime import datetime
 from io import StringIO
 import requests
-import subprocess
 from pathlib import Path
 from dotenv import load_dotenv
 from slack_sdk import WebClient
+
+from claude_cli import run_claude
 
 load_dotenv()
 
@@ -122,6 +123,13 @@ def crawl_all_companies(purpose="all"):
                 if analysis:
                     result["analysis"] = analysis
                     print(f"[INFO] Analysis completed for {name}")
+                else:
+                    # Career changes were detected but the AI narrative could not
+                    # be generated (e.g. usage/rate limit). Flag it so the report
+                    # posts a visible "분석 실패" note instead of silently omitting
+                    # the thread reply — the change list still shows in the root.
+                    result["analysis_failed"] = True
+                    print(f"[WARN] AI analysis unavailable for {name}; report will note the failure")
 
             results.append(result)
             print(f"[INFO] {name} completed")
@@ -224,38 +232,28 @@ def analyze_position_changes(company_name, company_key, file_prefix, position_da
 
 간결하게 작성해주세요. 너무 길지 않게, 핵심만! *별표는 1개만* 사용하세요."""
 
+    # Call Claude CLI (retries + rich diagnostics live in claude_cli.run_claude;
+    # it returns None only after exhausting retries, which the caller surfaces as
+    # a "분석 실패" thread note rather than silently dropping the analysis).
+    print(f"[INFO] Sending analysis request to Claude...")
+    analysis_text = run_claude(prompt, label=company_name, log=print)
+
+    if not analysis_text:
+        print(f"[ERROR] Claude analysis unavailable for {company_name} after retries")
+        return None
+
+    # Save analysis to file for debugging
     try:
-        # Call Claude CLI
-        print(f"[INFO] Sending analysis request to Claude...")
-        result = subprocess.run(
-            ['claude', '-p', '--model', 'sonnet'],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            timeout=120
-        )
-
-        if result.returncode == 0 and result.stdout.strip():
-            analysis_text = result.stdout.strip()
-
-            # Save analysis to file for debugging
-            analysis_dir = Path("logs/analysis")
-            analysis_dir.mkdir(parents=True, exist_ok=True)
-            analysis_file = analysis_dir / f"{company_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-            analysis_file.write_text(analysis_text, encoding='utf-8')
-            print(f"[INFO] Analysis saved to {analysis_file}")
-
-            return analysis_text
-        else:
-            print(f"[ERROR] Claude CLI failed for {company_name}: {result.stderr}")
-            return None
-
-    except subprocess.TimeoutExpired:
-        print(f"[ERROR] Claude CLI timeout for {company_name}")
-        return None
+        analysis_dir = Path("logs/analysis")
+        analysis_dir.mkdir(parents=True, exist_ok=True)
+        analysis_file = analysis_dir / f"{company_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        analysis_file.write_text(analysis_text, encoding='utf-8')
+        print(f"[INFO] Analysis saved to {analysis_file}")
     except Exception as e:
-        print(f"[ERROR] Failed to analyze {company_name}: {e}")
-        return None
+        # A logging-only failure must not discard a good analysis.
+        print(f"[WARN] Could not save analysis file for {company_name}: {e}")
+
+    return analysis_text
 
 
 def _chunk_mrkdwn(text, limit=2900):
@@ -322,13 +320,33 @@ def build_analysis_thread_blocks(result):
 
     The main report already carries the per-company Blog/Career change list, so
     the thread reply holds only the AI narrative (which exists for career
-    changes). Returns None when there is no AI analysis to post.
+    changes). If the narrative failed to generate despite detected career
+    changes (`analysis_failed`), a short failure note is posted instead.
+    Returns None when there is nothing to post (no changes / unchanged company).
     """
     analysis = result.get("analysis")
-    if not analysis:
-        return None
     company = result.get("company", "Unknown")
     links = COMPANY_LINKS.get(company, {})
+
+    if not analysis:
+        # No AI narrative. Stay silent for unchanged companies, but if career
+        # changes WERE detected and analysis failed, post a visible note so the
+        # reader doesn't mistake "no thread reply" for "no change".
+        if not result.get("analysis_failed"):
+            return None
+        blocks = [
+            {"type": "header",
+             "text": {"type": "plain_text", "text": f"⚠️ {company} · AI 분석 실패", "emoji": True}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": (
+                "채용 변화는 감지됐으나 AI 분석 생성에 실패했습니다 "
+                "(재시도 후에도 실패 — 사용량/레이트 한도 가능성).\n"
+                "변경 항목은 위 리포트의 *Career* 목록을 참고하세요. "
+                "필요 시 `/company_analyze` 로 수동 분석을 돌릴 수 있습니다.")}},
+        ]
+        if links.get("career"):
+            blocks.append({"type": "context", "elements": [
+                {"type": "mrkdwn", "text": f"🔗 <{links['career']}|채용 페이지 보기>"}]})
+        return blocks
 
     blocks = [{
         "type": "header",
